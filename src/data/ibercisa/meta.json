@@ -1,0 +1,8 @@
+{
+  "id": "ibercisa",
+  "name": "IBERCISA",
+  "model": "Guincho de Manobra (MR-MAN-H 70 100-64)",
+  "accent": "#c2693a",
+  "manual": "docs/manuais/ibercisa/MR-MAN-H 70 100-64 - Instruction & Maintenance Book - Arcimbaldo.pdf",
+  "summary": "Guincho de manobra de rebocador portuário IBERCISA (Arcimbaldo). Painel e intertravamento conforme o manual do fabricante."
+}

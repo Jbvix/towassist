@@ -1,0 +1,13 @@
+{
+  "controls": [
+    { "id": "main_power", "kind": "selector", "label": "Energia Principal", "x": 0.12, "y": 0.18, "hint": "Liga/desliga a alimentação do painel." },
+    { "id": "hpu_start", "kind": "button", "label": "Partida HPU", "x": 0.32, "y": 0.18, "hint": "Aciona a unidade de potência hidráulica (HPU)." },
+    { "id": "emergency_stop", "kind": "button", "label": "Parada de Emergência", "x": 0.85, "y": 0.18, "hint": "Botão de emergência — interrompe todos os movimentos." },
+    { "id": "winch_joystick", "kind": "lever", "label": "Joystick do Guincho", "x": 0.30, "y": 0.55, "hint": "Comanda recolher/soltar e velocidade." },
+    { "id": "spooling", "kind": "selector", "label": "Enrolamento", "x": 0.55, "y": 0.55, "hint": "Modo de enrolamento do cabo no tambor." },
+    { "id": "band_brake", "kind": "selector", "label": "Freio de Cinta", "x": 0.72, "y": 0.55, "hint": "Aplica/libera o freio de cinta." },
+    { "id": "load_cell", "kind": "gauge", "label": "Célula de Carga", "x": 0.18, "y": 0.82, "hint": "Carga medida na linha." },
+    { "id": "hyd_pressure", "kind": "gauge", "label": "Pressão Hidráulica", "x": 0.45, "y": 0.82, "hint": "Pressão do sistema hidráulico." },
+    { "id": "status_ready", "kind": "indicator", "label": "Pronto p/ Operar", "x": 0.78, "y": 0.82, "hint": "Acende quando o intertravamento libera a operação." }
+  ]
+}

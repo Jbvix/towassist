@@ -17,16 +17,28 @@ manuais dos fabricantes.
 
 ## Status do projeto
 
-> 🚧 **Sprint 1 — Documentação de Proposta.** Em andamento.
+> ✅ **Sprint 2 — Esqueleto rodável.** Concluído.
 
-Este repositório está sendo construído de forma **incremental, por sprints**. O
-Sprint 1 entrega apenas a **documentação de proposta e a árvore de diretórios**;
-nenhum código de aplicação foi escrito ainda.
+Este repositório é construído de forma **incremental, por sprints**. O esqueleto
+do frontend (Vite + TypeScript + PixiJS) já roda, com as **duas telas
+alternáveis** (KRAAIJVELD / IBERCISA), painel de comando desenhado a partir de
+dados e a caixa de chat do KRATOS (respostas reais entram no Sprint 3).
+
+### Como rodar localmente
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # typecheck + build de produção (dist/)
+```
+
+> A integração com xAI Grok / Realtime Voice (Sprint 3) roda via Netlify
+> Functions; localmente use `netlify dev` quando essa etapa começar.
 
 | Sprint | Entregável | Status |
 |--------|------------|--------|
-| 1 | Documentação de proposta + árvore de diretórios | 🚧 Em andamento |
-| 2 | Esqueleto do projeto (frontend + BFF) e telas alternáveis | ⏳ Planejado |
+| 1 | Documentação de proposta + árvore de diretórios | ✅ Concluído |
+| 2 | Esqueleto do projeto (Vite + PixiJS) e telas alternáveis | ✅ Concluído |
 | 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ⏳ Planejado |
 | 4 | Simulação 2D PixiJS — painel de comando | ⏳ Planejado |
 | 5 | Sistema de intertravamento (interlock) | ⏳ Planejado |

@@ -21,18 +21,28 @@
 
 ---
 
-## Sprint 2 — Esqueleto do projeto + telas alternáveis  ⏳
+## Sprint 2 — Esqueleto do projeto + telas alternáveis  ✅
 
-**Objetivo:** ter a aplicação rodando, com as duas telas vazias e navegação.
+**Objetivo:** ter a aplicação rodando, com as duas telas e navegação.
 
-**Entregáveis:**
-- Projeto `frontend/` (Vite + TypeScript + PixiJS) inicializado.
-- `ScreenManager` + `ScreenSwitcher`: alternar **KRAAIJVELD** ↔ **IBERCISA**.
-- Layout-base: área de simulação + área de chat (sem lógica ainda).
-- `shared/types` com contratos iniciais.
-- Decisões fechadas: framework de UI, monorepo/workspaces.
+**Entregáveis (concluídos):**
+- [x] Projeto Vite + TypeScript + PixiJS inicializado (`npm run dev`/`build`).
+- [x] `ScreenManager` + `ScreenSwitcher`: alternar **KRAAIJVELD** ↔ **IBERCISA**.
+- [x] Layout-base: área de simulação (canvas PixiJS) + caixa de chat do KRATOS.
+- [x] Painel de comando desenhado a partir de `src/data/<eq>/panel.json`.
+- [x] `shared/types` (equipment, api) + persona `shared/prompts/kratos.pt.ts`.
+- [x] `netlify.toml` (build, redirects `/api/*` e SPA).
+- [x] Decisões fechadas: **TS puro** (sem React) + **monorepo único**.
 
-**Demo:** abrir a página e alternar entre as duas telas (placeholders).
+**Demo:** abrir a página, alternar entre as duas telas e ver o painel/tema
+trocar; digitar no chat (resposta simulada até o Sprint 3).
+
+**Notas de implementação:**
+- Estrutura adotada na raiz do repo (não em `frontend/`): `src/`, `shared/`,
+  `netlify/` — simplifica o build do Netlify. A árvore em `01-ARQUITETURA.md`
+  permanece a referência conceitual.
+- O chat e o microfone são **placeholders** nesta etapa; a integração real
+  (xAI Grok + Realtime Voice) é o Sprint 3.
 
 ---
 

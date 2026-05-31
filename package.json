@@ -1,0 +1,21 @@
+{
+  "name": "towassist",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Agente de inteligência de apoio a treinamento, operação e manutenção dos Guinchos de Manobra KRAAIJVELD e IBERCISA.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pixi.js": "^8.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

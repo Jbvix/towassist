@@ -1,0 +1,23 @@
+# TowAssist — configuração de build e deploy no Netlify.
+# A XAI_API_KEY NÃO fica aqui: configure-a em Site settings → Environment variables.
+
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Encaminha as chamadas do frontend para as Functions (BFF).
+# Ex.: fetch('/api/chat') -> /.netlify/functions/chat
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA fallback: qualquer rota não-arquivo serve o index.html.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

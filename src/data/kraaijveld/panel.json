@@ -1,0 +1,13 @@
+{
+  "controls": [
+    { "id": "main_power", "kind": "selector", "label": "Energia Principal", "x": 0.12, "y": 0.18, "hint": "Liga/desliga a alimentação do painel." },
+    { "id": "hydraulic_pump", "kind": "button", "label": "Bomba Hidráulica", "x": 0.32, "y": 0.18, "hint": "Aciona a bomba hidráulica do guincho." },
+    { "id": "emergency_stop", "kind": "button", "label": "Parada de Emergência", "x": 0.85, "y": 0.18, "hint": "Botão de emergência — interrompe todos os movimentos." },
+    { "id": "drum_lever", "kind": "lever", "label": "Alavanca do Tambor", "x": 0.30, "y": 0.55, "hint": "Controla recolher/soltar o cabo." },
+    { "id": "clutch", "kind": "selector", "label": "Embreagem", "x": 0.55, "y": 0.55, "hint": "Engata/desengata o tambor." },
+    { "id": "brake", "kind": "selector", "label": "Freio", "x": 0.72, "y": 0.55, "hint": "Aplica/libera o freio do tambor." },
+    { "id": "line_tension", "kind": "gauge", "label": "Tensão do Cabo", "x": 0.18, "y": 0.82, "hint": "Indica a tensão atual no cabo." },
+    { "id": "hyd_pressure", "kind": "gauge", "label": "Pressão Hidráulica", "x": 0.45, "y": 0.82, "hint": "Pressão do sistema hidráulico." },
+    { "id": "status_ready", "kind": "indicator", "label": "Pronto p/ Operar", "x": 0.78, "y": 0.82, "hint": "Acende quando o intertravamento libera a operação." }
+  ]
+}
