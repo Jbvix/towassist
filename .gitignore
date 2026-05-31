@@ -1,0 +1,27 @@
+# Dependências
+node_modules/
+.pnp/
+.pnp.*
+
+# Build
+dist/
+build/
+.vite/
+
+# Variáveis de ambiente (segredos — nunca versionar)
+.env
+.env.local
+.env.*.local
+
+# Manuais confidenciais (manter apenas READMEs)
+docs/manuais/**/*.pdf
+docs/manuais/**/*.PDF
+
+# Índice vetorial gerado (RAG)
+backend/src/rag/index/
+
+# Logs e temporários
+*.log
+npm-debug.log*
+.DS_Store
+coverage/
