@@ -5,6 +5,7 @@ import type { EquipmentId } from '@shared/types/equipment.ts';
 import type { ScreenContext } from '@shared/types/api.ts';
 import { getEquipment } from '@/data/index.ts';
 import type { ScreenManager } from '@/app/ScreenManager.ts';
+import type { PanelStore } from '@/app/PanelStore.ts';
 import { sendChat } from '@/ai/GrokClient.ts';
 import { VoiceAgent, type VoiceStatus } from '@/ai/useVoiceAgent.ts';
 
@@ -21,7 +22,10 @@ export class ChatBox {
   /** Elemento da resposta de voz em streaming (para anexar deltas). */
   private streamingEl: HTMLElement | null = null;
 
-  constructor(private readonly screens: ScreenManager) {
+  constructor(
+    private readonly screens: ScreenManager,
+    private readonly panelStore: PanelStore,
+  ) {
     this.el = document.createElement('section');
     this.el.className = 'chat';
 
@@ -80,7 +84,7 @@ export class ChatBox {
   }
 
   private context(): ScreenContext {
-    return { equipment: this.screens.current };
+    return { equipment: this.screens.current, panelState: this.panelStore.snapshot() };
   }
 
   private async handleSend(): Promise<void> {

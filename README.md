@@ -45,7 +45,7 @@ npx netlify dev                   # serve frontend + /api/* (Functions)
 | 1 | Documentação de proposta + árvore de diretórios | ✅ Concluído |
 | 2 | Esqueleto do projeto (Vite + PixiJS) e telas alternáveis | ✅ Concluído |
 | 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ✅ Concluído |
-| 4 | Simulação 2D PixiJS — painel de comando | ⏳ Planejado |
+| 4 | Simulação 2D PixiJS — painel de comando interativo | ✅ Concluído |
 | 5 | Sistema de intertravamento (interlock) | ⏳ Planejado |
 | 6 | RAG sobre os manuais + base de conhecimento | ⏳ Planejado |
 | 7 | Refinamento, testes e empacotamento | ⏳ Planejado |

@@ -75,16 +75,29 @@ tela e ver o assistente ciente do equipamento ativo.
 
 ---
 
-## Sprint 4 — Simulação 2D (PixiJS): painel de comando  ⏳
+## Sprint 4 — Simulação 2D (PixiJS): painel de comando  ✅
 
 **Objetivo:** renderizar e operar o painel de cada guincho.
 
-**Entregáveis:**
-- `sim/` engine PixiJS (loop, cena, componentes: alavanca, botão, mostrador).
-- `KraaijveldPanel` e `IbercisaPanel` montados a partir de `data/*/panel.json`.
-- Interatividade: acionar comandos e ver realimentação visual.
+**Entregáveis (concluídos):**
+- [x] `sim/state.ts` — `PanelState`: valores dos controles, derivação de
+  mostradores/indicadores e animação suave via ticker.
+- [x] `sim/components/ControlNode.ts` — controle interativo (botão, seletor,
+  alavanca de 3 posições, gauge com arco, indicador), com realimentação visual.
+- [x] `Simulator` reescrito: ticker, interação por clique, layout responsivo.
+- [x] Painéis montados a partir de `src/data/<eq>/panel.json` (ambos os guinchos).
+- [x] `PanelStore` liga o estado do painel ao **contexto do KRATOS** (o chat
+  envia o estado atual junto da pergunta).
 
-**Demo:** operar os controles do painel de ambos os guinchos.
+**Comportamento simulado:** energia + bomba/HPU (e sem parada de emergência)
+deixam o painel "Pronto p/ Operar"; a alavanca/joystick gera tensão/carga na
+linha; a pressão hidráulica pressuriza. Mostradores animam suavemente.
+
+**Verificação:** `npm run build` OK; lógica de derivação coberta por smoke-test;
+dev server serve app e worklet (HTTP 200).
+
+**Demo:** acionar os controles e ver gauges/indicadores reagirem; perguntar ao
+KRATOS sobre o estado atual do painel.
 
 ---
 

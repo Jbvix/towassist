@@ -1,18 +1,25 @@
-// Engine de simulação 2D (PixiJS). No Sprint 2 desenha um painel-base a partir
-// dos dados do equipamento (placeholders dos controles). A interatividade e o
-// intertravamento entram nos Sprints 4 e 5.
+// Engine de simulação 2D (PixiJS). Sprint 4: painel interativo.
+// Desenha os controles a partir dos dados, aceita interação do usuário,
+// mantém o PanelState e anima os mostradores via ticker.
 
-import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
-import type { EquipmentDefinition, PanelControl } from '@shared/types/equipment.ts';
+import { Application, Container } from 'pixi.js';
+import type { EquipmentDefinition } from '@shared/types/equipment.ts';
+import { PanelState, type PanelValues } from '@/sim/state.ts';
+import { ControlNode, type ControlIntent } from '@/sim/components/ControlNode.ts';
 
 export class Simulator {
   private readonly app = new Application();
   private panel: Container | null = null;
+  private nodes = new Map<string, ControlNode>();
+  private state: PanelState | null = null;
   private accent = 0x2f9e8f;
   private resizeObserver: ResizeObserver | null = null;
   private initialized = false;
+  private lastTime = 0;
 
-  /** Inicializa o PixiJS dentro do contêiner informado. */
+  /** Notificado quando o estado do painel muda (para contexto do KRATOS). */
+  onStateChange: ((values: PanelValues) => void) | null = null;
+
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
       background: 0x0a0e12,
@@ -24,12 +31,14 @@ export class Simulator {
     host.appendChild(this.app.canvas);
     this.initialized = true;
 
-    // Redesenha quando o contêiner muda de tamanho.
     this.resizeObserver = new ResizeObserver(() => this.layout());
     this.resizeObserver.observe(host);
+
+    this.lastTime = performance.now();
+    this.app.ticker.add(() => this.update());
   }
 
-  /** Carrega/desenha o painel de um equipamento. */
+  /** Carrega/desenha o painel de um equipamento e (re)cria o estado. */
   render(def: EquipmentDefinition): void {
     if (!this.initialized) return;
     this.accent = cssColorToHex(def.meta.accent, 0x2f9e8f);
@@ -40,60 +49,60 @@ export class Simulator {
     }
     this.panel = new Container();
     this.app.stage.addChild(this.panel);
+    this.nodes.clear();
+
+    this.state = new PanelState(def);
+    this.state.subscribe((values) => {
+      this.applyValues(values);
+      this.onStateChange?.(values);
+    });
 
     for (const control of def.controls) {
-      this.panel.addChild(this.buildControl(control));
+      const node = new ControlNode(control, this.accent, (intent) => this.handleIntent(intent));
+      this.nodes.set(control.id, node);
+      this.panel.addChild(node.container);
     }
     this.layout();
   }
 
-  private buildControl(control: PanelControl): Container {
-    const node = new Container();
-    (node as Container & { __control?: PanelControl }).__control = control;
-
-    const w = 150;
-    const h = 64;
-
-    const box = new Graphics()
-      .roundRect(-w / 2, -h / 2, w, h, 10)
-      .fill(0x141a21)
-      .stroke({ width: 1.5, color: 0x2a3542 });
-    node.addChild(box);
-
-    // Glifo simples por tipo de controle.
-    const glyph = new Graphics();
-    drawGlyph(glyph, control, this.accent);
-    glyph.position.set(-w / 2 + 22, 0);
-    node.addChild(glyph);
-
-    const label = new Text({
-      text: control.label,
-      style: new TextStyle({
-        fill: 0xe7edf3,
-        fontSize: 13,
-        fontFamily: 'system-ui, sans-serif',
-        wordWrap: true,
-        wordWrapWidth: w - 54,
-      }),
-    });
-    label.anchor.set(0, 0.5);
-    label.position.set(-w / 2 + 44, 0);
-    node.addChild(label);
-
-    return node;
+  /** Estado atual do painel (para enviar ao assistente). */
+  get panelValues(): PanelValues {
+    return this.state?.snapshot ?? {};
   }
 
-  /** Posiciona os controles conforme suas coordenadas relativas (0..1). */
+  private handleIntent(intent: ControlIntent): void {
+    if (!this.state) return;
+    if (intent.kind === 'toggle') {
+      const next = this.state.get(intent.id) >= 0.5 ? 0 : 1;
+      this.state.set(intent.id, next);
+    } else {
+      this.state.set(intent.id, intent.value);
+    }
+  }
+
+  private applyValues(values: PanelValues): void {
+    for (const [id, node] of this.nodes) {
+      node.setValue(values[id] ?? 0);
+    }
+  }
+
+  private update(): void {
+    if (!this.state) return;
+    const now = performance.now();
+    const dt = (now - this.lastTime) / 1000;
+    this.lastTime = now;
+    this.state.tick(dt);
+  }
+
   private layout(): void {
     if (!this.panel) return;
     const { width, height } = this.app.renderer;
-    const margin = 90;
-    for (const child of this.panel.children) {
-      const control = (child as Container & { __control?: PanelControl }).__control;
-      if (!control) continue;
-      child.position.set(
-        margin + control.x * (width - margin * 2),
-        margin + control.y * (height - margin * 2),
+    const margin = 100;
+    for (const node of this.nodes.values()) {
+      const c = node.control;
+      node.container.position.set(
+        margin + c.x * (width - margin * 2),
+        margin + c.y * (height - margin * 2),
       );
     }
   }
@@ -105,29 +114,6 @@ export class Simulator {
       this.app.destroy(true, { children: true });
       this.initialized = false;
     }
-  }
-}
-
-function drawGlyph(g: Graphics, control: PanelControl, accent: number): void {
-  switch (control.kind) {
-    case 'lever':
-      g.roundRect(-3, -16, 6, 32, 3).fill(accent);
-      g.circle(0, -16, 7).fill(0xe7edf3);
-      break;
-    case 'button':
-      g.circle(0, 0, 12).fill(control.id === 'emergency_stop' ? 0xd8503f : accent);
-      break;
-    case 'gauge':
-      g.circle(0, 0, 13).stroke({ width: 3, color: accent });
-      g.moveTo(0, 0).lineTo(8, -6).stroke({ width: 2, color: 0xe7edf3 });
-      break;
-    case 'indicator':
-      g.circle(0, 0, 9).fill(accent).stroke({ width: 2, color: 0xe7edf3 });
-      break;
-    case 'selector':
-      g.circle(0, 0, 12).stroke({ width: 3, color: accent });
-      g.moveTo(0, 0).lineTo(0, -10).stroke({ width: 3, color: 0xe7edf3 });
-      break;
   }
 }
 

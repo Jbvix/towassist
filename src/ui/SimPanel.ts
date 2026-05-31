@@ -3,6 +3,7 @@
 import type { EquipmentId } from '@shared/types/equipment.ts';
 import { getEquipment } from '@/data/index.ts';
 import type { ScreenManager } from '@/app/ScreenManager.ts';
+import type { PanelStore } from '@/app/PanelStore.ts';
 import { Simulator } from '@/sim/Simulator.ts';
 
 export class SimPanel {
@@ -12,7 +13,10 @@ export class SimPanel {
   private readonly sim = new Simulator();
   private ready = false;
 
-  constructor(private readonly screens: ScreenManager) {
+  constructor(
+    private readonly screens: ScreenManager,
+    private readonly panelStore: PanelStore,
+  ) {
     this.el = document.createElement('section');
     this.el.className = 'sim-panel';
 
@@ -23,6 +27,9 @@ export class SimPanel {
     this.canvasHost.className = 'sim-panel__canvas';
 
     this.el.append(this.metaEl, this.canvasHost);
+
+    // Repassa o estado do painel ao store (consumido pelo chat do KRATOS).
+    this.sim.onStateChange = (values) => this.panelStore.update(values);
   }
 
   /** Inicializa o PixiJS e passa a reagir à troca de telas. */
