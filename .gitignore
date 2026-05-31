@@ -13,9 +13,8 @@ build/
 .env.local
 .env.*.local
 
-# Manuais confidenciais (manter apenas READMEs)
-docs/manuais/**/*.pdf
-docs/manuais/**/*.PDF
+# Manuais dos equipamentos: versionados em docs/manuais/<equipamento>/
+# (mantidos no repositório por decisão do projeto).
 
 # Índice vetorial gerado (RAG)
 backend/src/rag/index/
