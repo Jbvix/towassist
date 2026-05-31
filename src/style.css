@@ -105,7 +105,46 @@ body {
 @media (max-width: 860px) {
   .app-body {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
+    /* Simulação em cima (maior), chat embaixo (rolável). */
+    grid-template-rows: 55fr 45fr;
+  }
+
+  .sim-panel {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Cabeçalho compacto: não quebra o título em várias linhas. */
+  .app-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .app-title {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .app-title span {
+    font-size: 0.7rem;
+  }
+
+  /* Intertravamento como faixa inferior (não cobre o painel). */
+  .interlock {
+    position: absolute;
+    top: auto;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 42%;
+    font-size: 0.78rem;
+  }
+
+  .sim-panel__meta {
+    font-size: 0.75rem;
+    padding: 0.45rem 0.7rem;
   }
 }
 

@@ -133,14 +133,29 @@ export class Simulator {
   private layout(): void {
     if (!this.panel) return;
     const { width, height } = this.app.renderer;
-    const margin = 100;
+
+    // Canvas de projeto virtual: os controles (160x70) são posicionados num
+    // espaço fixo e o painel inteiro é escalado para caber na tela (desktop
+    // ou celular), sem sobreposição. Margem proporcional ao menor lado.
+    const DESIGN_W = 1000;
+    const DESIGN_H = 720;
+    const margin = 110;
+
     for (const node of this.nodes.values()) {
       const c = node.control;
       node.container.position.set(
-        margin + c.x * (width - margin * 2),
-        margin + c.y * (height - margin * 2),
+        margin + c.x * (DESIGN_W - margin * 2),
+        margin + c.y * (DESIGN_H - margin * 2),
       );
     }
+
+    // Escala "contain": cabe tudo, mantém proporção; centraliza.
+    const scale = Math.min(width / DESIGN_W, height / DESIGN_H);
+    this.panel.scale.set(scale);
+    this.panel.position.set(
+      (width - DESIGN_W * scale) / 2,
+      (height - DESIGN_H * scale) / 2,
+    );
   }
 
   destroy(): void {
