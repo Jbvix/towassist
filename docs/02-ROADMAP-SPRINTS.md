@@ -51,7 +51,7 @@ trocar; digitar no chat (resposta simulada até o Sprint 3).
 **Objetivo:** assistente conversacional **KRATOS** funcional, por texto e voz.
 
 **Entregáveis (concluídos):**
-- [x] Netlify Functions: `chat.ts` (proxy do Grok, texto), `realtime-token.ts`
+- [x] Netlify Functions: `chat.ts` (proxy do Grok, texto), `realtime.ts`
   (cunha token efêmero de voz) e `health.ts`. `XAI_API_KEY` só no servidor.
 - [x] `lib/grok.ts` — integração com `chat/completions` e `realtime/client_secrets`.
 - [x] `VoiceAgent` (`useVoiceAgent.ts`): WebSocket `grok-voice-latest`, AudioWorklet
@@ -145,7 +145,7 @@ leria nada sem OCR. O IBERCISA tem texto, mas usar Collections unifica os dois.
   `POST /v1/documents/search`; **degrada com elegância** se a collection não
   estiver configurada.
 - [x] `chat.ts` injeta os trechos do manual no prompt do KRATOS (texto).
-- [x] Voz: `realtime-token.ts` devolve os IDs das collections e o `VoiceAgent`
+- [x] Voz: `realtime.ts` devolve os IDs das collections e o `VoiceAgent`
   adiciona o tool `file_search` à sessão (citações por voz).
 - [x] Variáveis: `XAI_COLLECTION_KRAAIJVELD` / `XAI_COLLECTION_IBERCISA`.
 
