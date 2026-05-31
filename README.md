@@ -30,6 +30,7 @@ dados e a caixa de chat do KRATOS (respostas reais entram no Sprint 3).
 npm install
 npm run dev      # http://localhost:5173 (só frontend; sem Functions)
 npm run build    # typecheck + build de produção (dist/)
+npm test         # testes do intertravamento (Vitest)
 
 # Com o assistente KRATOS (Functions de chat/voz):
 export XAI_API_KEY="xai-..."      # ou configure no painel do Netlify
@@ -46,7 +47,7 @@ npx netlify dev                   # serve frontend + /api/* (Functions)
 | 2 | Esqueleto do projeto (Vite + PixiJS) e telas alternáveis | ✅ Concluído |
 | 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ✅ Concluído |
 | 4 | Simulação 2D PixiJS — painel de comando interativo | ✅ Concluído |
-| 5 | Sistema de intertravamento (interlock) | ⏳ Planejado |
+| 5 | Sistema de intertravamento (interlock) | ✅ Concluído |
 | 6 | RAG sobre os manuais + base de conhecimento | ⏳ Planejado |
 | 7 | Refinamento, testes e empacotamento | ⏳ Planejado |
 

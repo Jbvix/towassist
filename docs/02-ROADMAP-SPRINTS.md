@@ -101,17 +101,31 @@ KRATOS sobre o estado atual do painel.
 
 ---
 
-## Sprint 5 — Sistema de intertravamento (interlock)  ⏳
+## Sprint 5 — Sistema de intertravamento (interlock)  ✅
 
 **Objetivo:** demonstrar a lógica de segurança/intertravamento.
 
-**Entregáveis:**
-- `interlock/InterlockEngine` (máquina de estados pura) + regras por guincho.
-- `InterlockPanel`: exibe condições atendidas/pendentes e bloqueios ativos.
-- Acoplamento ao painel: comandos bloqueados/liberados conforme as regras.
-- `tests/interlock/` cobrindo as regras de cada equipamento.
+**Entregáveis (concluídos):**
+- [x] `interlock/InterlockEngine` — avaliação **pura** (sem PixiJS/IA) do estado
+  do painel contra regras; helpers `on`/`off`/`atLeast`.
+- [x] `interlock/types.ts` — condições, regras, avaliação e alertas globais.
+- [x] Regras por guincho: `rules/kraaijveld.rules.ts` e `rules/ibercisa.rules.ts`.
+- [x] `InterlockPanel` (overlay): por controle, LIBERADO/BLOQUEADO + condições
+  pendentes; alertas globais (parada de emergência).
+- [x] Acoplamento ao painel: ao tentar **acionar** um comando bloqueado, ele
+  pisca em vermelho e um *toast* explica o motivo; desligar é sempre permitido.
+- [x] `tests/interlock/` (Vitest) — **9 testes**, cobrindo ambos os equipamentos.
 
-**Demo:** tentar um comando sem condição e ver o bloqueio explicado.
+**Regras (didáticas, a validar no Sprint 6 contra os manuais):**
+- KRAAIJVELD: bomba exige energia+e-stop liberado; embreagem exige bomba+pressão
+  +freio aplicado; alavanca do tambor exige embreagem+pressão.
+- IBERCISA: HPU exige energia; freio de cinta exige HPU+pressão; joystick exige
+  HPU+pressão+freio liberado+e-stop ok.
+
+**Verificação:** `npm test` (9/9) e `npm run build` passam.
+
+**Demo:** tentar um comando sem condição e ver o bloqueio explicado no painel de
+intertravamento e no *toast*; perguntar ao KRATOS por quê (ele recebe o estado).
 
 ---
 

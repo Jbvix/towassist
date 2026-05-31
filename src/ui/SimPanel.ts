@@ -5,13 +5,17 @@ import { getEquipment } from '@/data/index.ts';
 import type { ScreenManager } from '@/app/ScreenManager.ts';
 import type { PanelStore } from '@/app/PanelStore.ts';
 import { Simulator } from '@/sim/Simulator.ts';
+import { InterlockPanel } from '@/ui/InterlockPanel.ts';
 
 export class SimPanel {
   readonly el: HTMLElement;
   private readonly metaEl: HTMLDivElement;
   private readonly canvasHost: HTMLDivElement;
+  private readonly toastEl: HTMLDivElement;
   private readonly sim = new Simulator();
+  private readonly interlockPanel = new InterlockPanel();
   private ready = false;
+  private toastTimer: number | null = null;
 
   constructor(
     private readonly screens: ScreenManager,
@@ -26,10 +30,19 @@ export class SimPanel {
     this.canvasHost = document.createElement('div');
     this.canvasHost.className = 'sim-panel__canvas';
 
+    this.toastEl = document.createElement('div');
+    this.toastEl.className = 'sim-panel__toast';
+    this.toastEl.hidden = true;
+
+    this.canvasHost.append(this.interlockPanel.el, this.toastEl);
     this.el.append(this.metaEl, this.canvasHost);
 
     // Repassa o estado do painel ao store (consumido pelo chat do KRATOS).
     this.sim.onStateChange = (values) => this.panelStore.update(values);
+    // Atualiza o painel de intertravamento a cada avaliação.
+    this.sim.onInterlock = (evaluation) => this.interlockPanel.update(evaluation);
+    // Mostra o motivo quando um comando é bloqueado.
+    this.sim.onBlocked = (_id, label, reasons) => this.showBlockedToast(label, reasons);
   }
 
   /** Inicializa o PixiJS e passa a reagir à troca de telas. */
@@ -50,7 +63,22 @@ export class SimPanel {
     label.textContent = `${def.meta.name} · ${def.meta.model} — painel de comando (simulação)`;
     this.metaEl.append(dot, label);
 
+    // Rótulos legíveis para o painel de intertravamento.
+    const labels: Record<string, string> = {};
+    for (const c of def.controls) labels[c.id] = c.label;
+    this.interlockPanel.setLabels(labels);
+
     if (this.ready) this.sim.render(def);
+  }
+
+  private showBlockedToast(label: string, reasons: string[]): void {
+    const why = reasons.length ? ` Falta: ${reasons.join('; ')}.` : '';
+    this.toastEl.textContent = `🔒 "${label}" bloqueado pelo intertravamento.${why}`;
+    this.toastEl.hidden = false;
+    if (this.toastTimer !== null) window.clearTimeout(this.toastTimer);
+    this.toastTimer = window.setTimeout(() => {
+      this.toastEl.hidden = true;
+    }, 4000);
   }
 
   destroy(): void {

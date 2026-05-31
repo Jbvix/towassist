@@ -94,6 +94,16 @@ export class ControlNode {
     this.redraw();
   }
 
+  /** Pisca em vermelho ao tentar acionar um comando bloqueado. */
+  flashBlocked(): void {
+    this.box
+      .clear()
+      .roundRect(-W / 2, -H / 2, W, H, 12)
+      .fill(COLORS.box)
+      .stroke({ width: 2.5, color: COLORS.danger });
+    window.setTimeout(() => this.redraw(), 320);
+  }
+
   private setupInteraction(): void {
     const c = this.control;
     if (c.kind === 'gauge' || c.kind === 'indicator') {
