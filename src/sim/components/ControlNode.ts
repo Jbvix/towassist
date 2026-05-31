@@ -2,7 +2,7 @@
 // Renderiza a "caixa" + glifo conforme o tipo e o valor atual, e dispara
 // uma intenção de mudança quando o usuário interage (clique/drag).
 
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Rectangle, Text, TextStyle } from 'pixi.js';
 import type { PanelControl } from '@shared/types/equipment.ts';
 import { LEVER_LABELS } from '@/sim/state.ts';
 
@@ -112,9 +112,9 @@ export class ControlNode {
     }
     this.container.eventMode = 'static';
     this.container.cursor = 'pointer';
-    if (c.hint) {
-      // Tooltip nativo via título do canvas não existe; mantemos no aria/DOM.
-    }
+    // hitArea explícita: sem ela o Container não recebe o clique de forma
+    // confiável no PixiJS v8 (os filhos Graphics não viram área de toque do pai).
+    this.container.hitArea = new Rectangle(-W / 2, -H / 2, W, H);
 
     if (c.kind === 'lever') {
       // Alavanca de 3 posições: clique cicla SOLTAR(-1) → NEUTRO(0) → RECOLHER(1).

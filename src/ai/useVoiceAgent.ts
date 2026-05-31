@@ -142,7 +142,12 @@ export class VoiceAgent {
     const res = await fetch('/api/realtime', { method: 'POST' });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error((err as { error?: string }).error || 'Falha ao obter token de voz.');
+      const detail = (err as { error?: string }).error;
+      throw new Error(
+        detail
+          ? `Falha ao obter token de voz (HTTP ${res.status}): ${detail}`
+          : `Falha ao obter token de voz (HTTP ${res.status}).`,
+      );
     }
     const token = (await res.json()) as RealtimeTokenResponse;
     if (token.collections) this.collections = token.collections;
