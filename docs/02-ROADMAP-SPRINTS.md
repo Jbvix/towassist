@@ -36,17 +36,23 @@
 
 ---
 
-## Sprint 3 — Integração xAI Grok (chat texto + voz)  ⏳
+## Sprint 3 — Assistente KRATOS: xAI Grok (texto) + Realtime Voice  ⏳
 
-**Objetivo:** assistente conversacional funcional.
+**Objetivo:** assistente conversacional **KRATOS** funcional, por texto e voz.
 
 **Entregáveis:**
-- `backend/` (BFF Node.js) com `POST /api/chat` fazendo proxy ao xAI Grok.
-- `XAI_API_KEY` protegida no servidor (nunca no navegador).
-- `ChatBox` (texto) + `VoiceControls` (STT/TTS via Web Speech API).
-- Contexto da tela ativa enviado ao assistente.
+- Netlify Functions: `chat.ts` (proxy do Grok, texto) e `realtime-token.ts`
+  (cunha token efêmero de voz). `XAI_API_KEY` só no servidor.
+- `useVoiceAgent()`: WebSocket `grok-voice-latest`, AudioWorklet (mic PCM 24 kHz),
+  playback gapless, VAD/interrupção, transcrição.
+- `frontend/public/pcm-processor-worklet.js`.
+- `ChatBox` (texto + transcript) + `VoiceControls` (botão de microfone/visualizador).
+- Persona **KRATOS** em `shared/prompts/kratos.pt.ts`; contexto da tela ativa.
 
-**Demo:** perguntar por texto e por voz e receber respostas do Grok.
+**Demo:** conversar por voz com KRATOS (com interrupção) e por texto; trocar de
+tela e ver o assistente ciente do equipamento ativo.
+
+> Especificação detalhada em [`03-AGENTE-VOZ-KRATOS.md`](03-AGENTE-VOZ-KRATOS.md).
 
 ---
 

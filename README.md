@@ -27,7 +27,7 @@ nenhum código de aplicação foi escrito ainda.
 |--------|------------|--------|
 | 1 | Documentação de proposta + árvore de diretórios | 🚧 Em andamento |
 | 2 | Esqueleto do projeto (frontend + BFF) e telas alternáveis | ⏳ Planejado |
-| 3 | Integração xAI Grok (chat texto + voz) | ⏳ Planejado |
+| 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ⏳ Planejado |
 | 4 | Simulação 2D PixiJS — painel de comando | ⏳ Planejado |
 | 5 | Sistema de intertravamento (interlock) | ⏳ Planejado |
 | 6 | RAG sobre os manuais + base de conhecimento | ⏳ Planejado |
@@ -42,16 +42,20 @@ Detalhes em [`docs/02-ROADMAP-SPRINTS.md`](docs/02-ROADMAP-SPRINTS.md).
 - 📄 [Proposta técnica](docs/00-PROPOSTA.md) — visão, escopo, requisitos e stack.
 - 🏗️ [Arquitetura e árvore de diretórios](docs/01-ARQUITETURA.md)
 - 🗺️ [Roadmap de sprints](docs/02-ROADMAP-SPRINTS.md)
+- 🎙️ [Agente de voz KRATOS (xAI Realtime)](docs/03-AGENTE-VOZ-KRATOS.md)
 - 📚 [Manuais dos equipamentos](docs/manuais/README.md)
 
 ---
 
 ## Stack prevista
 
-- **Frontend:** TypeScript, Vite, PixiJS (simulação 2D), Web Speech API (voz).
-- **Backend/BFF:** Node.js — proxy seguro para a API do xAI Grok (a chave nunca
-  fica exposta no navegador).
-- **IA:** xAI Grok (chat) + RAG sobre os manuais dos equipamentos.
+- **Frontend:** TypeScript, Vite, PixiJS (simulação 2D).
+- **Assistente KRATOS:** xAI Grok (chat por texto) + **xAI Realtime Voice**
+  (`grok-voice-latest`) para voz full-duplex; Web Speech API como *fallback*.
+- **Hospedagem/BFF:** **Netlify** (site estático + Functions). A `XAI_API_KEY`
+  fica nas variáveis de ambiente do Netlify; a voz usa tokens efêmeros — a chave
+  nunca vai ao navegador.
+- **Conhecimento:** RAG sobre os manuais dos equipamentos.
 
 ---
 

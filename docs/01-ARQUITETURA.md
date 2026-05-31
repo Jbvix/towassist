@@ -73,6 +73,7 @@ towassist/
 │   ├── tsconfig.json
 │   ├── vite.config.ts
 │   ├── public/                     #   Assets estáticos
+│   │   ├── pcm-processor-worklet.js #    AudioWorklet PCM 24 kHz (voz)  [Sprint 3]
 │   │   └── assets/
 │   │       ├── kraaijveld/         #     Sprites/imagens do painel KRAAIJVELD
 │   │       └── ibercisa/           #     Sprites/imagens do painel IBERCISA
@@ -85,10 +86,10 @@ towassist/
 │       │   └── routes.ts
 │       │
 │       ├── ui/                     #   Componentes de interface
-│       │   ├── ChatBox.ts          #     Caixa de texto do assistente   [Sprint 3]
-│       │   ├── VoiceControls.ts    #     Entrada/saída de voz           [Sprint 3]
-│       │   ├── ScreenSwitcher.ts   #     Botões de alternância de tela  [Sprint 2]
-│       │   └── InterlockPanel.ts   #     Painel visual do interlock     [Sprint 5]
+│       │   ├── ChatBox.ts          #     Caixa de texto + transcript     [Sprint 3]
+│       │   ├── VoiceControls.ts    #     Botão de microfone / visualizador [Sprint 3]
+│       │   ├── ScreenSwitcher.ts   #     Botões de alternância de tela   [Sprint 2]
+│       │   └── InterlockPanel.ts   #     Painel visual do interlock      [Sprint 5]
 │       │
 │       ├── sim/                    #   Engine de simulação 2D (PixiJS)  [Sprint 4]
 │       │   ├── Simulator.ts        #     Loop de render e estado
@@ -110,8 +111,10 @@ towassist/
 │       │       └── ibercisa.rules.ts
 │       │
 │       ├── ai/                     #   Cliente da IA (fala com o BFF)   [Sprint 3]
-│       │   ├── GrokClient.ts       #     Chamadas a /api/chat
-│       │   ├── speech.ts           #     Web Speech API (STT/TTS)
+│       │   ├── useVoiceAgent.ts    #     xAI Realtime: WS, mic, playback, VAD
+│       │   ├── pcm.ts              #     Base64/PCM helpers (24 kHz)
+│       │   ├── GrokClient.ts       #     Chat por texto via /api/chat
+│       │   ├── speechFallback.ts   #     Fallback Web Speech API (opcional)
 │       │   └── context.ts          #     Monta contexto da tela ativa
 │       │
 │       └── data/                   #   Configuração de cada equipamento [Sprint 2+]
@@ -128,7 +131,8 @@ towassist/
 │
 ├── netlify/                        # 🔒 BFF serverless (Netlify Functions) [Sprint 3]
 │   └── functions/
-│       ├── chat.ts                 #   /.netlify/functions/chat -> xAI Grok
+│       ├── chat.ts                 #   /api/chat -> xAI Grok (texto)
+│       ├── realtime-token.ts       #   /api/realtime -> cunha token efêmero de voz
 │       ├── health.ts               #   Healthcheck
 │       └── lib/                    #   Código compartilhado entre functions
 │           ├── grok.ts             #     Integração com a API do xAI Grok
@@ -140,9 +144,12 @@ towassist/
 │   └── build-rag-index.ts          #   Gera o índice RAG dos manuais (build-time)
 │
 ├── shared/                         # 🔁 Tipos/contratos compartilhados [Sprint 2]
+│   ├── prompts/
+│   │   └── kratos.pt.ts            #   Instruções da persona KRATOS (voz + texto)
 │   └── types/
 │       ├── api.ts                  #   Contrato das rotas do BFF
 │       ├── equipment.ts            #   Modelo de equipamento
+│       ├── realtime.ts             #   Tipos dos eventos da xAI Realtime Voice
 │       └── interlock.ts            #   Tipos do intertravamento
 │
 └── tests/                          # ✅ Testes  [Sprint 5+]

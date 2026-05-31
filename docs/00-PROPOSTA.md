@@ -14,8 +14,9 @@ Portuários** dos modelos **KRAAIJVELD** e **IBERCISA**.
 O objetivo é reduzir a curva de aprendizado de novos operadores, padronizar
 procedimentos e servir de consulta rápida para a manutenção, unindo:
 
-1. Um **assistente conversacional** (texto **e** voz) que responde dúvidas com
-   base nos manuais dos fabricantes — usando **xAI Grok**.
+1. Um **assistente conversacional** (texto **e** voz) chamado **KRATOS**, o
+   *Chefe de Máquinas*, que responde dúvidas com base nos manuais dos
+   fabricantes — usando **xAI Grok** (chat) e **xAI Realtime Voice** (voz).
 2. Um **simulador 2D interativo** (**PixiJS**) que reproduz o **painel de
    comando** e o **sistema de intertravamento (interlock)**, para que o usuário
    *veja* e *experimente* o funcionamento, sem risco operacional.
@@ -51,7 +52,8 @@ consulta sobre a operação e manutenção dos guinchos KRAAIJVELD e IBERCISA.
 
 ### 3.1. Dentro do escopo (MVP)
 - Página web única com:
-  - **Caixa de chat** (entrada por **texto e voz**) integrada ao **xAI Grok**.
+  - **Caixa de chat** (entrada por **texto e voz**) com o assistente **KRATOS**
+    (xAI Grok para texto + xAI Realtime Voice para voz).
   - **Duas telas alternáveis**: **KRAAIJVELD** e **IBERCISA**.
   - **Simulação 2D (PixiJS)** do **painel de comando** de cada guincho.
   - **Visualização do sistema de intertravamento** (estados, condições e
@@ -74,7 +76,7 @@ consulta sobre a operação e manutenção dos guinchos KRAAIJVELD e IBERCISA.
 | ID | Requisito |
 |----|-----------|
 | RF01 | O usuário pode enviar perguntas por **texto** e receber respostas do assistente. |
-| RF02 | O usuário pode enviar perguntas por **voz** (fala → texto) e ouvir a resposta (texto → fala). |
+| RF02 | O usuário pode conversar por **voz** com o assistente **KRATOS** (xAI Realtime): fala e ouve em tempo real, com interrupção e transcrição. |
 | RF03 | As respostas do assistente são baseadas no conteúdo dos **manuais** (RAG). |
 | RF04 | O usuário pode **alternar** entre as telas **KRAAIJVELD** e **IBERCISA**. |
 | RF05 | Cada tela exibe a **simulação 2D do painel de comando** do respectivo guincho. |
@@ -86,7 +88,7 @@ consulta sobre a operação e manutenção dos guinchos KRAAIJVELD e IBERCISA.
 
 | ID | Requisito |
 |----|-----------|
-| RNF01 | **Segurança da chave xAI**: a `XAI_API_KEY` nunca é exposta no navegador; fica nas **variáveis de ambiente do Netlify** e é usada apenas pelas **Netlify Functions** (BFF). |
+| RNF01 | **Segurança da chave xAI**: a `XAI_API_KEY` nunca é exposta no navegador; fica nas **variáveis de ambiente do Netlify**. A voz usa **tokens efêmeros** cunhados por uma Function (`/v1/realtime/client_secrets`); o navegador só recebe o token de curta duração. |
 | RNF02 | **Fidelidade**: a simulação e o intertravamento devem refletir os manuais; divergências devem ser sinalizadas. |
 | RNF03 | **Usabilidade**: interface clara, em português, adequada a operadores. |
 | RNF04 | **Desempenho**: simulação 2D fluida (alvo 60 fps em hardware comum). |
@@ -138,8 +140,9 @@ Detalhes completos e a **árvore de diretórios** em
 | Build/Dev | **Vite** | Build rápido, HMR, suporte nativo a TS. |
 | Linguagem | **TypeScript** | Tipagem para um modelo de intertravamento confiável. |
 | Simulação 2D | **PixiJS** | Renderização 2D acelerada por WebGL, ideal para o painel. |
-| Voz | **Web Speech API** | STT/TTS no navegador, sem dependência externa paga. |
-| Backend/BFF | **Netlify Functions** (serverless) | Proxy seguro para o xAI Grok; protege a chave de API, sem servidor sempre ligado. |
+| Voz | **xAI Realtime Voice** (`grok-voice-latest`) | Voz full-duplex (WebSocket), VAD no servidor, interrupção e transcrição. Persona **KRATOS**. |
+| Voz (fallback) | **Web Speech API** | Alternativa local quando não há microfone/permissão. |
+| Backend/BFF | **Netlify Functions** (serverless) | Proxy do Grok (texto) + cunhagem de token efêmero de voz; protege a chave de API. |
 | Hospedagem | **Netlify** | Site único: frontend estático na CDN + Functions; deploy contínuo via Git. |
 | IA | **xAI Grok** | Requisito do cliente para o assistente conversacional. |
 | Conhecimento | **RAG** sobre os manuais | Respostas ancoradas na documentação oficial. |
@@ -198,6 +201,8 @@ arquivos de dados versionados (ver árvore de diretórios).
 | Divergência entre simulação e equipamento real | Alto | Revisão técnica por sprint; rastreabilidade ao manual. |
 | Custo/limites de API do Grok | Médio | Cache de respostas; *rate limiting* na Function. |
 | Limites do plano Netlify (timeout/invocações das Functions) | Médio | Respostas enxutas; *streaming* quando possível; monitorar uso e cotas. |
+| Latência da voz (região `us-east-1`) e qualidade de áudio | Médio | Buffer de microfone, *warmup* do AudioContext, EC/NS/AGC; medir latência. |
+| Custo da Realtime Voice (áudio por minuto) | Médio | Token efêmero curto; encerrar sessão ociosa; *fallback* de texto. |
 
 ---
 
