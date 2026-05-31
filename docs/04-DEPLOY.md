@@ -41,7 +41,7 @@ Em **Site settings → Environment variables**, configure:
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
 | `XAI_API_KEY` | ✅ | Chave xAI (chat + cunhagem de token de voz). |
-| `XAI_MODEL` | ⛅ | Modelo de chat (ex.: `grok-2-latest`, `grok-4`). Default: `grok-2-latest`. |
+| `XAI_MODEL` | ⛅ | Modelo de chat na Responses API (`/v1/responses`). Default: `grok-4.20-0309-non-reasoning`. |
 | `XAI_COLLECTION_KRAAIJVELD` | ⛅ | ID da Collection do manual KRAAIJVELD (RAG). |
 | `XAI_COLLECTION_IBERCISA` | ⛅ | ID da Collection do manual IBERCISA (RAG). |
 

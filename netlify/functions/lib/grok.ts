@@ -18,20 +18,34 @@ export function requireApiKey(): string {
   return key;
 }
 
-/** Chama o chat do Grok e devolve o texto da resposta. */
+/**
+ * Chama o Grok via Responses API (/v1/responses) e devolve o texto.
+ * O modelo é configurável (XAI_MODEL); default conforme a conta do cliente.
+ */
 export async function grokChat(messages: GrokChatMessage[]): Promise<string> {
   const apiKey = requireApiKey();
-  // Modelo configurável no painel do Netlify (XAI_MODEL). Default atual;
-  // 'grok-beta' foi descontinuado pela xAI.
-  const model = process.env.XAI_MODEL || 'grok-2-latest';
+  const model = process.env.XAI_MODEL || 'grok-4.20-0309-non-reasoning';
 
-  const res = await fetch(`${XAI_BASE}/chat/completions`, {
+  // Responses API: 'instructions' = system; 'input' = mensagens do usuário.
+  const instructions = messages
+    .filter((m) => m.role === 'system')
+    .map((m) => m.content)
+    .join('\n\n');
+  const input = messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => ({ role: m.role, content: m.content }));
+
+  const res = await fetch(`${XAI_BASE}/responses`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ model, messages, temperature: 0.3 }),
+    body: JSON.stringify({
+      model,
+      instructions: instructions || undefined,
+      input,
+    }),
   });
 
   if (!res.ok) {
@@ -39,10 +53,33 @@ export async function grokChat(messages: GrokChatMessage[]): Promise<string> {
     throw new Error(`xAI Grok respondeu ${res.status}: ${detail.slice(0, 300)}`);
   }
 
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return data.choices?.[0]?.message?.content?.trim() ?? '';
+  const data = (await res.json()) as ResponsesPayload;
+  return extractResponseText(data);
+}
+
+/** Forma (parcial) da resposta da Responses API da xAI. */
+interface ResponsesPayload {
+  output_text?: string;
+  output?: Array<{
+    type?: string;
+    content?: Array<{ type?: string; text?: string }>;
+  }>;
+}
+
+/** Extrai o texto da resposta, tolerando as variações do payload. */
+function extractResponseText(data: ResponsesPayload): string {
+  // Atalho fornecido por alguns SDKs/respostas.
+  if (typeof data.output_text === 'string' && data.output_text.trim()) {
+    return data.output_text.trim();
+  }
+  // Caminho geral: concatena os textos dos itens de mensagem.
+  const parts: string[] = [];
+  for (const item of data.output ?? []) {
+    for (const c of item.content ?? []) {
+      if (typeof c.text === 'string') parts.push(c.text);
+    }
+  }
+  return parts.join('').trim();
 }
 
 /** Cunha um token efêmero para a Realtime Voice API. */
