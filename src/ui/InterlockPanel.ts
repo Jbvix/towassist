@@ -14,6 +14,7 @@ export class InterlockPanel {
   constructor() {
     this.el = document.createElement('aside');
     this.el.className = 'interlock';
+    this.el.setAttribute('aria-label', 'Sistema de intertravamento');
 
     const title = document.createElement('div');
     title.className = 'interlock__title';
@@ -21,6 +22,9 @@ export class InterlockPanel {
 
     this.alertsEl = document.createElement('div');
     this.alertsEl.className = 'interlock__alerts';
+    // Alertas (ex.: parada de emergência) são anunciados imediatamente.
+    this.alertsEl.setAttribute('role', 'alert');
+    this.alertsEl.setAttribute('aria-live', 'assertive');
 
     this.listEl = document.createElement('div');
     this.listEl.className = 'interlock__list';

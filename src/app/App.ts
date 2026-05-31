@@ -12,12 +12,20 @@ export class App {
   private readonly screens = new ScreenManager();
   private readonly panelStore = new PanelStore();
   private readonly simPanel: SimPanel;
+  private chat: ChatBox | null = null;
 
   constructor(private readonly root: HTMLElement) {
     this.simPanel = new SimPanel(this.screens, this.panelStore);
     this.build();
     // Aplica o tema da tela ativa na raiz (cor de acento).
     this.screens.subscribe((active) => this.applyTheme(active));
+    // Libera microfone/WebSocket ao sair da página.
+    window.addEventListener('beforeunload', () => this.destroy());
+  }
+
+  destroy(): void {
+    this.chat?.destroy();
+    this.simPanel.destroy();
   }
 
   async start(): Promise<void> {
@@ -31,16 +39,17 @@ export class App {
 
     const title = document.createElement('div');
     title.className = 'app-title';
-    title.innerHTML = '<strong>TowAssist</strong><span>Guinchos de Manobra · KRATOS</span>';
+    title.innerHTML =
+      '<h1 class="app-title__name">TowAssist</h1><span>Guinchos de Manobra · KRATOS</span>';
 
     const switcher = new ScreenSwitcher(this.screens);
     header.append(title, switcher.el);
 
     // Corpo: simulação + chat
-    const body = document.createElement('div');
+    const body = document.createElement('main');
     body.className = 'app-body';
-    const chat = new ChatBox(this.screens, this.panelStore);
-    body.append(this.simPanel.el, chat.el);
+    this.chat = new ChatBox(this.screens, this.panelStore);
+    body.append(this.simPanel.el, this.chat.el);
 
     this.root.append(header, body);
   }

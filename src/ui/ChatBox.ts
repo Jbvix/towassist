@@ -40,6 +40,9 @@ export class ChatBox {
 
     this.messagesEl = document.createElement('div');
     this.messagesEl.className = 'chat__messages';
+    this.messagesEl.setAttribute('role', 'log');
+    this.messagesEl.setAttribute('aria-live', 'polite');
+    this.messagesEl.setAttribute('aria-label', 'Conversa com o KRATOS');
 
     const composer = document.createElement('form');
     composer.className = 'chat__composer';
@@ -71,6 +74,14 @@ export class ChatBox {
     });
     this.micBtn.addEventListener('click', () => this.toggleVoice());
 
+    // Esc encerra a sessão de voz rapidamente.
+    this.input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.voice.isActive) {
+        e.preventDefault();
+        this.voice.disconnect();
+      }
+    });
+
     // Agente de voz ciente da tela ativa.
     this.voice = new VoiceAgent(() => this.screens.current, {
       onStatus: (s, d) => this.onVoiceStatus(s, d),
@@ -81,6 +92,11 @@ export class ChatBox {
     });
 
     this.screens.subscribe((active) => this.announceScreen(active));
+  }
+
+  /** Encerra a sessão de voz e libera recursos (chamado no unload). */
+  destroy(): void {
+    this.voice.disconnect();
   }
 
   private context(): ScreenContext {

@@ -165,16 +165,22 @@ citação).
 
 ---
 
-## Sprint 7 — Refinamento, testes e empacotamento  ⏳
+## Sprint 7 — Refinamento, testes e empacotamento  ✅
 
 **Objetivo:** qualidade e entrega.
 
-**Entregáveis:**
-- Ajustes de UX, acessibilidade e desempenho (alvo 60 fps).
-- Testes adicionais e revisão técnica de fidelidade aos manuais.
-- Build de produção e instruções de implantação.
+**Entregáveis (concluídos):**
+- [x] **Acessibilidade**: landmarks (`<main>`, `<h1>`), chat como `role="log"`
+  `aria-live="polite"`, alertas de intertravamento `role="alert"`
+  `aria-live="assertive"`, rótulos ARIA nos controles.
+- [x] **UX**: Esc encerra a voz; limpeza de microfone/WebSocket no `beforeunload`.
+- [x] **Testes**: 18 no total (intertravamento + estado do painel) via Vitest.
+- [x] **Empacotamento**: `docs/04-DEPLOY.md` — guia de implantação no Netlify,
+  variáveis de ambiente, ativação do RAG e checklist de go-live.
 
-**Demo:** versão candidata a release.
+**Verificação:** `npm test` (18/18) e `npm run build` passam.
+
+**Demo:** versão candidata a release — publicável no Netlify seguindo o guia.
 
 ---
 

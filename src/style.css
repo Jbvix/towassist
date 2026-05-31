@@ -55,9 +55,11 @@ body {
   gap: 0.6rem;
 }
 
-.app-title strong {
+.app-title__name {
   font-size: 1.1rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
+  margin: 0;
 }
 
 .app-title span {
