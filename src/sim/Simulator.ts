@@ -3,15 +3,19 @@
 // mantém o PanelState e anima os mostradores via ticker.
 
 import { Application, Container } from 'pixi.js';
-import type { EquipmentDefinition } from '@shared/types/equipment.ts';
+import type { EquipmentDefinition, EquipmentId } from '@shared/types/equipment.ts';
 import { PanelState, type PanelValues } from '@/sim/state.ts';
 import { ControlNode, type ControlIntent } from '@/sim/components/ControlNode.ts';
+import { InterlockEngine } from '@/interlock/InterlockEngine.ts';
+import { getRuleset } from '@/interlock/rules/index.ts';
+import type { InterlockEvaluation } from '@/interlock/types.ts';
 
 export class Simulator {
   private readonly app = new Application();
   private panel: Container | null = null;
   private nodes = new Map<string, ControlNode>();
   private state: PanelState | null = null;
+  private interlock: InterlockEngine | null = null;
   private accent = 0x2f9e8f;
   private resizeObserver: ResizeObserver | null = null;
   private initialized = false;
@@ -19,6 +23,10 @@ export class Simulator {
 
   /** Notificado quando o estado do painel muda (para contexto do KRATOS). */
   onStateChange: ((values: PanelValues) => void) | null = null;
+  /** Notificado com a avaliação do intertravamento (para o InterlockPanel). */
+  onInterlock: ((evaluation: InterlockEvaluation) => void) | null = null;
+  /** Notificado quando um comando é bloqueado pelo intertravamento. */
+  onBlocked: ((controlId: string, label: string, reasons: string[]) => void) | null = null;
 
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
@@ -51,9 +59,12 @@ export class Simulator {
     this.app.stage.addChild(this.panel);
     this.nodes.clear();
 
+    this.interlock = new InterlockEngine(getRuleset(def.meta.id as EquipmentId));
+
     this.state = new PanelState(def);
     this.state.subscribe((values) => {
       this.applyValues(values);
+      this.applyInterlock(values);
       this.onStateChange?.(values);
     });
 
@@ -72,18 +83,43 @@ export class Simulator {
 
   private handleIntent(intent: ControlIntent): void {
     if (!this.state) return;
-    if (intent.kind === 'toggle') {
-      const next = this.state.get(intent.id) >= 0.5 ? 0 : 1;
-      this.state.set(intent.id, next);
-    } else {
-      this.state.set(intent.id, intent.value);
+    const current = this.state.get(intent.id);
+    const next =
+      intent.kind === 'toggle' ? (current >= 0.5 ? 0 : 1) : intent.value;
+
+    // Desligar / voltar ao neutro é sempre permitido (segurança).
+    // Acionar (ligar / sair do neutro) passa pelo intertravamento.
+    const isActivation = Math.abs(next) > Math.abs(current);
+    if (isActivation && this.interlock && !this.interlock.isAllowed(intent.id, this.state.snapshot)) {
+      const blockedBy = this.interlock.evaluate(this.state.snapshot).controls[intent.id]?.blockedBy ?? [];
+      const node = this.nodes.get(intent.id);
+      node?.flashBlocked();
+      this.onBlocked?.(intent.id, node?.control.label ?? intent.id, blockedBy);
+      return;
     }
+
+    this.state.set(intent.id, next);
   }
 
   private applyValues(values: PanelValues): void {
     for (const [id, node] of this.nodes) {
       node.setValue(values[id] ?? 0);
     }
+  }
+
+  /** Reavalia o intertravamento e atualiza o estado visual dos controles. */
+  private applyInterlock(values: PanelValues): void {
+    if (!this.interlock) return;
+    const evalResult = this.interlock.evaluate(values);
+    for (const [id, node] of this.nodes) {
+      const ev = evalResult.controls[id];
+      // Um controle bloqueado só fica "desabilitado" quando está desligado;
+      // se já estiver acionado, mantém-se habilitado para poder ser desligado.
+      const isOn = Math.abs(values[id] ?? 0) >= 0.5;
+      const enabled = !ev || ev.allowed || isOn;
+      node.setEnabled(enabled);
+    }
+    this.onInterlock?.(evalResult);
   }
 
   private update(): void {
@@ -97,14 +133,29 @@ export class Simulator {
   private layout(): void {
     if (!this.panel) return;
     const { width, height } = this.app.renderer;
-    const margin = 100;
+
+    // Canvas de projeto virtual: os controles (160x70) são posicionados num
+    // espaço fixo e o painel inteiro é escalado para caber na tela (desktop
+    // ou celular), sem sobreposição. Margem proporcional ao menor lado.
+    const DESIGN_W = 1000;
+    const DESIGN_H = 720;
+    const margin = 110;
+
     for (const node of this.nodes.values()) {
       const c = node.control;
       node.container.position.set(
-        margin + c.x * (width - margin * 2),
-        margin + c.y * (height - margin * 2),
+        margin + c.x * (DESIGN_W - margin * 2),
+        margin + c.y * (DESIGN_H - margin * 2),
       );
     }
+
+    // Escala "contain": cabe tudo, mantém proporção; centraliza.
+    const scale = Math.min(width / DESIGN_W, height / DESIGN_H);
+    this.panel.scale.set(scale);
+    this.panel.position.set(
+      (width - DESIGN_W * scale) / 2,
+      (height - DESIGN_H * scale) / 2,
+    );
   }
 
   destroy(): void {

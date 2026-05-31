@@ -17,12 +17,14 @@ manuais dos fabricantes.
 
 ## Status do projeto
 
-> ✅ **Sprint 2 — Esqueleto rodável.** Concluído.
+> ✅ **Sprints 1–7 concluídos.** Versão candidata a release.
 
-Este repositório é construído de forma **incremental, por sprints**. O esqueleto
-do frontend (Vite + TypeScript + PixiJS) já roda, com as **duas telas
-alternáveis** (KRAAIJVELD / IBERCISA), painel de comando desenhado a partir de
-dados e a caixa de chat do KRATOS (respostas reais entram no Sprint 3).
+Construído de forma **incremental, por sprints**. A aplicação (Vite + TypeScript
++ PixiJS) roda com as **duas telas alternáveis** (KRAAIJVELD / IBERCISA), painel
+de comando **interativo** com **sistema de intertravamento**, e o assistente
+**KRATOS** por **texto (xAI Grok)** e **voz (xAI Realtime)**, com **RAG** sobre os
+manuais (xAI Collections). Pronto para publicar no Netlify — ver
+[guia de implantação](docs/04-DEPLOY.md).
 
 ### Como rodar localmente
 
@@ -30,6 +32,7 @@ dados e a caixa de chat do KRATOS (respostas reais entram no Sprint 3).
 npm install
 npm run dev      # http://localhost:5173 (só frontend; sem Functions)
 npm run build    # typecheck + build de produção (dist/)
+npm test         # testes do intertravamento (Vitest)
 
 # Com o assistente KRATOS (Functions de chat/voz):
 export XAI_API_KEY="xai-..."      # ou configure no painel do Netlify
@@ -46,9 +49,9 @@ npx netlify dev                   # serve frontend + /api/* (Functions)
 | 2 | Esqueleto do projeto (Vite + PixiJS) e telas alternáveis | ✅ Concluído |
 | 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ✅ Concluído |
 | 4 | Simulação 2D PixiJS — painel de comando interativo | ✅ Concluído |
-| 5 | Sistema de intertravamento (interlock) | ⏳ Planejado |
-| 6 | RAG sobre os manuais + base de conhecimento | ⏳ Planejado |
-| 7 | Refinamento, testes e empacotamento | ⏳ Planejado |
+| 5 | Sistema de intertravamento (interlock) | ✅ Concluído |
+| 6 | RAG sobre os manuais (xAI Collections) | ✅ Concluído |
+| 7 | Refinamento, testes e empacotamento | ✅ Concluído |
 
 Detalhes em [`docs/02-ROADMAP-SPRINTS.md`](docs/02-ROADMAP-SPRINTS.md).
 
@@ -60,6 +63,7 @@ Detalhes em [`docs/02-ROADMAP-SPRINTS.md`](docs/02-ROADMAP-SPRINTS.md).
 - 🏗️ [Arquitetura e árvore de diretórios](docs/01-ARQUITETURA.md)
 - 🗺️ [Roadmap de sprints](docs/02-ROADMAP-SPRINTS.md)
 - 🎙️ [Agente de voz KRATOS (xAI Realtime)](docs/03-AGENTE-VOZ-KRATOS.md)
+- 🚀 [Guia de implantação (Netlify)](docs/04-DEPLOY.md)
 - 📚 [Manuais dos equipamentos](docs/manuais/README.md)
 
 ---

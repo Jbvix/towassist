@@ -62,7 +62,7 @@ token como *subprotocol*.
 ```
 Navegador                         Netlify Functions            xAI Realtime
 ┌──────────────────────┐  POST    ┌────────────────────┐  POST  ┌────────────┐
-│ useVoiceAgent()      │ /api/    │ realtime-token.ts  │ /v1/   │  client_   │
+│ useVoiceAgent()      │ /api/    │ realtime.ts  │ /v1/   │  client_   │
 │  • AudioWorklet (mic)│ realtime │  (XAI_API_KEY env) │ realtime│  secrets   │
 │  • playback PCM 24k  │ ───────▶ │                    │ ──────▶│            │
 │  • WebSocket  ◀──────┼──────────┼─ token "xai-..."  ◀┼────────┤            │
@@ -71,7 +71,7 @@ Navegador                         Netlify Functions            xAI Realtime
           └───────────────────────────────────────────────────────────┘
 ```
 
-**Função de token (`netlify/functions/realtime-token.ts`):**
+**Função de token (`netlify/functions/realtime.ts`):**
 ```
 POST https://api.x.ai/v1/realtime/client_secrets
   Authorization: Bearer $XAI_API_KEY
@@ -162,7 +162,7 @@ Referência completa de eventos: ver o guia do cliente (seção 5) e a doc ofici
 ## 7. Onde isso encaixa no roadmap
 
 - **Sprint 3** — implementar o hook `useVoiceAgent()`, a função
-  `realtime-token.ts`, o worklet PCM e a `ChatBox`/`VoiceControls` ligadas ao
+  `realtime.ts`, o worklet PCM e a `ChatBox`/`VoiceControls` ligadas ao
   KRATOS (voz + texto), com interrupção e transcrição.
 - **Sprint 5** — expor estado de painel/interlock ao KRATOS (tool de contexto).
 - **Sprint 6** — Collection (RAG) dos manuais via `file_search`.

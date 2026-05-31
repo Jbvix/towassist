@@ -132,7 +132,7 @@ towassist/
 ├── netlify/                        # 🔒 BFF serverless (Netlify Functions) [Sprint 3]
 │   └── functions/
 │       ├── chat.ts                 #   /api/chat -> xAI Grok (texto)
-│       ├── realtime-token.ts       #   /api/realtime -> cunha token efêmero de voz
+│       ├── realtime.ts       #   /api/realtime -> cunha token efêmero de voz
 │       ├── health.ts               #   Healthcheck
 │       └── lib/                    #   Código compartilhado entre functions
 │           ├── grok.ts             #     Integração com a API do xAI Grok

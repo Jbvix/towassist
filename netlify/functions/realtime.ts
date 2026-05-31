@@ -4,6 +4,7 @@
 
 import type { RealtimeTokenResponse } from '../../shared/types/api.ts';
 import { mintRealtimeToken, JSON_HEADERS } from './lib/grok.ts';
+import { collectionIdFor } from './lib/rag.ts';
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
@@ -12,9 +13,16 @@ export default async function handler(req: Request): Promise<Response> {
 
   try {
     const token = await mintRealtimeToken(300);
+    const collections: Record<string, string> = {};
+    const k = collectionIdFor('kraaijveld');
+    const i = collectionIdFor('ibercisa');
+    if (k) collections.kraaijveld = k;
+    if (i) collections.ibercisa = i;
+
     const payload: RealtimeTokenResponse = {
       value: token.value,
       expires_at: token.expires_at,
+      collections,
     };
     return json(payload, 200);
   } catch (err) {

@@ -5,6 +5,7 @@
 import type { ChatRequest, ChatResponse } from '../../shared/types/api.ts';
 import { buildKratosInstructions } from '../../shared/prompts/kratos.pt.ts';
 import { grokChat, JSON_HEADERS } from './lib/grok.ts';
+import { retrieveManualContext } from './lib/rag.ts';
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
@@ -30,9 +31,13 @@ export default async function handler(req: Request): Promise<Response> {
     ? `\nEstado atual do painel (${equipment}): ${JSON.stringify(panelState)}.`
     : '';
 
+  // RAG: recupera trechos do manual do equipamento (vazio se não configurado).
+  const manualContext = await retrieveManualContext(equipment, message);
+  const ragNote = manualContext ? `\n\n${manualContext}` : '';
+
   try {
     const reply = await grokChat([
-      { role: 'system', content: system + stateNote },
+      { role: 'system', content: system + stateNote + ragNote },
       { role: 'user', content: message },
     ]);
     const payload: ChatResponse = { reply };

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TowAssist">
+  <rect width="512" height="512" rx="96" fill="#0a0e12"/>
+  <!-- gancho de guincho estilizado -->
+  <g fill="none" stroke="#2f9e8f" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 96 V236"/>
+    <path d="M256 236 a72 72 0 1 1 -72 72"/>
+  </g>
+  <circle cx="256" cy="96" r="26" fill="#2f9e8f"/>
+  <!-- linha de base (cabo/tambor) -->
+  <rect x="150" y="392" width="212" height="26" rx="13" fill="#c2693a"/>
+</svg>
