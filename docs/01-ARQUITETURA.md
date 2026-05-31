@@ -16,8 +16,9 @@
 2. **Dados separados do código**: cada guincho é descrito por arquivos de
    configuração em `data/` (layout do painel, comandos, regras de interlock).
    Trocar de equipamento = trocar de configuração.
-3. **Segurança por design**: a chave do xAI Grok vive **somente** no BFF
-   (`backend/`). O navegador nunca a vê.
+3. **Segurança por design**: a chave do xAI Grok vive **somente** no servidor —
+   nas **variáveis de ambiente do Netlify**, lidas pelas Netlify Functions. O
+   navegador nunca a vê (não entra no bundle do Vite).
 4. **Testabilidade**: o modelo de intertravamento é lógica pura, coberta por
    testes, independente do PixiJS e da IA.
 
@@ -26,15 +27,19 @@
 ## 2. Visão de componentes
 
 ```
-frontend/                       backend/ (BFF)              xAI
-┌───────────────────────┐      ┌────────────────────┐    ┌──────────┐
-│ app  (bootstrap/telas)│      │ rota /api/chat     │    │  Grok    │
-│ ui   (chat, voz, HUD) │─────▶│ rota /api/voice?   │───▶│   API    │
-│ sim  (PixiJS engine)  │      │ rag  (manuais)     │    └──────────┘
-│ interlock (FSM)       │      │ secrets (XAI_KEY)  │
-│ ai  (cliente do BFF)  │      └────────────────────┘
-│ data (KRAAIJVELD/...) │
+            ┌──────────────── NETLIFY ────────────────┐
+frontend/ (estático, CDN)        Netlify Functions (BFF)        xAI
+┌───────────────────────┐      ┌────────────────────────┐    ┌──────────┐
+│ app  (bootstrap/telas)│      │ fn chat   (/api/chat)  │    │  Grok    │
+│ ui   (chat, voz, HUD) │─────▶│ fn health              │───▶│   API    │
+│ sim  (PixiJS engine)  │      │ rag  (índice empacotado)│    └──────────┘
+│ interlock (FSM)       │      │ XAI_API_KEY (env Netlify)│
+│ ai  (cliente do BFF)  │      └────────────────────────┘
+│ data (KRAAIJVELD/...) │            ▲ serverless, sob demanda
 └───────────────────────┘
+            └─────────────────────────────────────────┘
+  Build (Vite) → publica frontend/dist + empacota functions
+  Redirect: /api/*  →  /.netlify/functions/:splat
 ```
 
 ---
@@ -119,20 +124,20 @@ towassist/
 │               ├── interlock.json
 │               └── meta.json
 │
-├── backend/                        # 🔒 BFF (Node.js)  [Sprint 3]
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-│       ├── server.ts               #   HTTP server
-│       ├── routes/
-│       │   ├── chat.ts             #     POST /api/chat  -> xAI Grok
-│       │   └── health.ts
-│       ├── grok/
-│       │   └── GrokService.ts      #   Integração com a API do xAI Grok
-│       └── rag/                    #   Recuperação sobre os manuais   [Sprint 6]
-│           ├── indexer.ts          #     Indexa os manuais
-│           ├── retriever.ts        #     Busca trechos relevantes
-│           └── index/              #     Índice gerado (ignorado no git)
+├── netlify.toml                    # ⚙️ Config de build/deploy + redirects  [Sprint 2]
+│
+├── netlify/                        # 🔒 BFF serverless (Netlify Functions) [Sprint 3]
+│   └── functions/
+│       ├── chat.ts                 #   /.netlify/functions/chat -> xAI Grok
+│       ├── health.ts               #   Healthcheck
+│       └── lib/                    #   Código compartilhado entre functions
+│           ├── grok.ts             #     Integração com a API do xAI Grok
+│           └── rag/                #     Recuperação sobre os manuais   [Sprint 6]
+│               ├── retriever.ts    #       Busca trechos relevantes (runtime)
+│               └── index/          #       Índice empacotado com a function
+│
+├── scripts/                        # 🛠️ Scripts de build/dados            [Sprint 6]
+│   └── build-rag-index.ts          #   Gera o índice RAG dos manuais (build-time)
 │
 ├── shared/                         # 🔁 Tipos/contratos compartilhados [Sprint 2]
 │   └── types/
@@ -151,8 +156,8 @@ towassist/
 
 - **Framework de UI**: TS puro + DOM mínimo *vs.* React. Recomendação inicial:
   manter leve (TS puro) para não competir com o canvas PixiJS, salvo necessidade.
-- **Monorepo**: usar workspaces (`frontend` + `backend` + `shared`) ou repos
-  separados. Recomendação: workspaces no mesmo repositório.
+- **Monorepo**: usar workspaces (`frontend` + `netlify/functions` + `shared`) ou
+  repos separados. Recomendação: workspaces no mesmo repositório.
 - **Armazenamento do índice RAG**: arquivo local *vs.* banco vetorial.
 - **TTS/STT**: Web Speech API (nativo) *vs.* serviço externo, caso a qualidade
   exija.
@@ -166,8 +171,49 @@ towassist/
 2. (voz) speech.ts converte fala -> texto (STT).
 3. ai/context.ts anexa o contexto: tela ativa (KRAAIJVELD/IBERCISA) e
    estado atual do painel/interlock.
-4. GrokClient envia { pergunta, contexto } para o BFF (/api/chat).
-5. O BFF executa RAG nos manuais, monta o prompt e chama o xAI Grok.
+4. GrokClient envia { pergunta, contexto } para /api/chat
+   (redirecionado pelo Netlify para /.netlify/functions/chat).
+5. A Netlify Function executa RAG nos manuais, monta o prompt, lê a
+   XAI_API_KEY do ambiente e chama o xAI Grok.
 6. Resposta volta ao frontend e é exibida na ChatBox.
 7. (voz) speech.ts converte texto -> fala (TTS).
+```
+
+---
+
+## 6. Hospedagem no Netlify
+
+A aplicação inteira é publicada em um **único site Netlify**:
+
+- **Frontend** = site estático. O Vite gera `frontend/dist/`, que o Netlify serve
+  pela CDN. (`publish = "frontend/dist"`.)
+- **BFF** = **Netlify Functions** (serverless), em `netlify/functions/`. Não há
+  servidor Node.js sempre ligado; cada chamada a `/api/*` aciona uma function sob
+  demanda.
+- **Proxy do xAI Grok**: a function `chat` chama a API do Grok. A
+  **`XAI_API_KEY`** é configurada em *Site settings → Environment variables* no
+  painel do Netlify — **nunca** vai para o repositório nem para o bundle do
+  navegador.
+- **Roteamento**: `netlify.toml` redireciona `/api/*` →
+  `/.netlify/functions/:splat`, mantendo as URLs limpas para o frontend.
+- **RAG**: o índice dos manuais é gerado em *build-time* (`scripts/build-rag-index.ts`)
+  e **empacotado junto da function**, pois o filesystem em runtime é efêmero e
+  somente-leitura. Os PDFs grandes ficam no repositório (`docs/manuais/`) mas
+  **não** são publicados como assets do site.
+
+### `netlify.toml` (esboço — será criado no Sprint 2)
+
+```toml
+[build]
+  command = "npm run build"      # build do Vite + bundling das functions
+  publish = "frontend/dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# XAI_API_KEY é definida no painel do Netlify (Environment variables),
+# nunca neste arquivo.
 ```

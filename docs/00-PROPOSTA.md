@@ -86,7 +86,7 @@ consulta sobre a operação e manutenção dos guinchos KRAAIJVELD e IBERCISA.
 
 | ID | Requisito |
 |----|-----------|
-| RNF01 | **Segurança da chave xAI**: a `XAI_API_KEY` nunca é exposta no navegador; todas as chamadas passam por um **BFF** (backend-for-frontend). |
+| RNF01 | **Segurança da chave xAI**: a `XAI_API_KEY` nunca é exposta no navegador; fica nas **variáveis de ambiente do Netlify** e é usada apenas pelas **Netlify Functions** (BFF). |
 | RNF02 | **Fidelidade**: a simulação e o intertravamento devem refletir os manuais; divergências devem ser sinalizadas. |
 | RNF03 | **Usabilidade**: interface clara, em português, adequada a operadores. |
 | RNF04 | **Desempenho**: simulação 2D fluida (alvo 60 fps em hardware comum). |
@@ -113,12 +113,14 @@ Detalhes completos e a **árvore de diretórios** em
 │         │          │   Telas: [KRAAIJVELD] / [IBERCISA]   │  │
 │         │          └──────────────────────────────────────┘  │
 └─────────┼─────────────────────────────────────────────────────┘
-          │ HTTPS (texto da pergunta + contexto da tela)
+          │ fetch /api/chat  (texto da pergunta + contexto da tela)
           ▼
-┌───────────────────────────────────────────────────────────────┐
-│                    BFF (Node.js)                              │
-│   • Guarda a XAI_API_KEY    • RAG sobre os manuais            │
-│   • Proxy para a API do xAI Grok                             │
+┌─────────────────────── NETLIFY ───────────────────────────────┐
+│  Frontend estático (CDN)   +   Netlify Functions (BFF)        │
+│                                                               │
+│  Redirect /api/*  →  /.netlify/functions/chat                 │
+│   • XAI_API_KEY em env vars do Netlify   • RAG dos manuais    │
+│   • Proxy serverless para a API do xAI Grok                   │
 └─────────┬─────────────────────────────────────────────────────┘
           │ HTTPS
           ▼
@@ -137,12 +139,24 @@ Detalhes completos e a **árvore de diretórios** em
 | Linguagem | **TypeScript** | Tipagem para um modelo de intertravamento confiável. |
 | Simulação 2D | **PixiJS** | Renderização 2D acelerada por WebGL, ideal para o painel. |
 | Voz | **Web Speech API** | STT/TTS no navegador, sem dependência externa paga. |
-| Backend/BFF | **Node.js** | Proxy seguro para o xAI Grok; protege a chave de API. |
+| Backend/BFF | **Netlify Functions** (serverless) | Proxy seguro para o xAI Grok; protege a chave de API, sem servidor sempre ligado. |
+| Hospedagem | **Netlify** | Site único: frontend estático na CDN + Functions; deploy contínuo via Git. |
 | IA | **xAI Grok** | Requisito do cliente para o assistente conversacional. |
 | Conhecimento | **RAG** sobre os manuais | Respostas ancoradas na documentação oficial. |
 
 > A escolha de framework de UI (ex.: React vs. TS puro) e de armazenamento do
 > índice RAG será fechada no **Sprint 2**, ao montar o esqueleto.
+
+### Hospedagem (Netlify)
+
+A aplicação inteira roda em um **único site Netlify**:
+- **Frontend**: build do Vite (`frontend/dist`) servido pela CDN.
+- **BFF**: **Netlify Functions** em `netlify/functions/`, acionadas sob demanda.
+- **xAI Grok**: a `XAI_API_KEY` fica nas **variáveis de ambiente do Netlify** —
+  nunca no repositório nem no bundle do navegador (ver RNF01).
+- **Roteamento**: `netlify.toml` redireciona `/api/*` para as Functions.
+
+Detalhes em [`01-ARQUITETURA.md`](01-ARQUITETURA.md), seção *Hospedagem no Netlify*.
 
 ---
 
@@ -152,8 +166,9 @@ A aplicação trata os guinchos como **dois perfis de configuração** que
 compartilham a mesma *engine* de simulação, mas têm dados próprios:
 
 - **KRAAIJVELD** — painel, comandos e regras de intertravamento conforme o
-  manual do fabricante.
-- **IBERCISA** — idem, com suas particularidades.
+  manual do fabricante (`Users Manual - 2500P.pdf`).
+- **IBERCISA** — idem, com suas particularidades
+  (`MR-MAN-H 70 100-64 - Instruction & Maintenance Book - Arcimbaldo.pdf`).
 
 As diferenças (layout do painel, sensores, condições de intertravamento,
 sequências de partida/parada) serão extraídas dos manuais e descritas em
@@ -167,6 +182,8 @@ arquivos de dados versionados (ver árvore de diretórios).
   [`docs/manuais/README.md`](manuais/README.md)). *São a fonte de verdade do
   projeto.*
 - **Conta/credencial xAI Grok** com acesso à API (`XAI_API_KEY`).
+- **Conta Netlify** com o repositório conectado (deploy contínuo) e a
+  `XAI_API_KEY` configurada nas variáveis de ambiente do site.
 - Navegador moderno com suporte a WebGL e Web Speech API.
 
 ---
@@ -177,9 +194,10 @@ arquivos de dados versionados (ver árvore de diretórios).
 |-------|---------|-----------|
 | Manuais incompletos/ambíguos sobre o intertravamento | Alto | Validar cada regra com especialista; sinalizar lacunas. |
 | Web Speech API com suporte limitado em alguns navegadores | Médio | *Fallback* para texto; documentar navegadores suportados. |
-| Exposição acidental da chave xAI | Alto | BFF obrigatório; chave só no servidor (RNF01). |
+| Exposição acidental da chave xAI | Alto | Chave só nas env vars do Netlify, usada pelas Functions; nunca no bundle (RNF01). |
 | Divergência entre simulação e equipamento real | Alto | Revisão técnica por sprint; rastreabilidade ao manual. |
-| Custo/limites de API do Grok | Médio | Cache de respostas; *rate limiting* no BFF. |
+| Custo/limites de API do Grok | Médio | Cache de respostas; *rate limiting* na Function. |
+| Limites do plano Netlify (timeout/invocações das Functions) | Médio | Respostas enxutas; *streaming* quando possível; monitorar uso e cotas. |
 
 ---
 
@@ -188,12 +206,13 @@ arquivos de dados versionados (ver árvore de diretórios).
 - [x] Documento de proposta aprovado (este arquivo).
 - [x] **Árvore de diretórios** definida ([`01-ARQUITETURA.md`](01-ARQUITETURA.md)).
 - [x] Roadmap de sprints definido ([`02-ROADMAP-SPRINTS.md`](02-ROADMAP-SPRINTS.md)).
-- [ ] Manuais dos equipamentos disponibilizados no repositório/fonte acordada.
+- [x] Manuais dos equipamentos disponibilizados ([`docs/manuais/`](manuais/README.md)).
 
 ---
 
 ## 11. Próximos passos (Sprint 2)
 
-Montar o **esqueleto do projeto**: frontend (Vite + TS + PixiJS), BFF Node.js, e
-as **duas telas alternáveis** (KRAAIJVELD / IBERCISA) ainda sem lógica, apenas a
-navegação e o layout-base.
+Montar o **esqueleto do projeto**: frontend (Vite + TS + PixiJS), `netlify.toml`
++ esqueleto das **Netlify Functions** (BFF), e as **duas telas alternáveis**
+(KRAAIJVELD / IBERCISA) ainda sem lógica, apenas a navegação e o layout-base.
+Configurar o deploy contínuo no Netlify.
