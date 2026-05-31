@@ -1,7 +1,7 @@
 // Persona KRATOS — usada tanto pela voz (xAI Realtime) quanto pelo chat (Grok).
 // Mantida em um único lugar para garantir consistência (ver docs/03-AGENTE-VOZ-KRATOS.md).
 
-import type { EquipmentId } from '@shared/types/equipment.ts';
+import type { EquipmentId } from '../types/equipment.ts';
 
 /** Instruções-base da persona, fornecidas pelo cliente. */
 export const KRATOS_BASE_INSTRUCTIONS =

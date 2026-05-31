@@ -28,18 +28,23 @@ dados e a caixa de chat do KRATOS (respostas reais entram no Sprint 3).
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:5173 (só frontend; sem Functions)
 npm run build    # typecheck + build de produção (dist/)
+
+# Com o assistente KRATOS (Functions de chat/voz):
+export XAI_API_KEY="xai-..."      # ou configure no painel do Netlify
+npx netlify dev                   # serve frontend + /api/* (Functions)
 ```
 
-> A integração com xAI Grok / Realtime Voice (Sprint 3) roda via Netlify
-> Functions; localmente use `netlify dev` quando essa etapa começar.
+> O chat usa `/api/chat` (xAI Grok) e a voz usa `/api/realtime` (token efêmero
+> da xAI Realtime Voice). A `XAI_API_KEY` fica **só** nas Functions; o navegador
+> nunca a vê. Ajuste `XAI_MODEL` conforme os modelos da sua conta.
 
 | Sprint | Entregável | Status |
 |--------|------------|--------|
 | 1 | Documentação de proposta + árvore de diretórios | ✅ Concluído |
 | 2 | Esqueleto do projeto (Vite + PixiJS) e telas alternáveis | ✅ Concluído |
-| 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ⏳ Planejado |
+| 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ✅ Concluído |
 | 4 | Simulação 2D PixiJS — painel de comando | ⏳ Planejado |
 | 5 | Sistema de intertravamento (interlock) | ⏳ Planejado |
 | 6 | RAG sobre os manuais + base de conhecimento | ⏳ Planejado |

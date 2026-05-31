@@ -1,10 +1,12 @@
-// Caixa de chat do KRATOS: texto + (placeholder de) voz.
-// No Sprint 2 a UI é funcional, mas as respostas são simuladas localmente —
-// a integração real com xAI Grok / Realtime Voice entra no Sprint 3.
+// Caixa de chat do KRATOS: texto (xAI Grok) + voz (xAI Realtime).
+// O texto vai à Function /api/chat; a voz usa o VoiceAgent (token efêmero).
 
 import type { EquipmentId } from '@shared/types/equipment.ts';
+import type { ScreenContext } from '@shared/types/api.ts';
 import { getEquipment } from '@/data/index.ts';
 import type { ScreenManager } from '@/app/ScreenManager.ts';
+import { sendChat } from '@/ai/GrokClient.ts';
+import { VoiceAgent, type VoiceStatus } from '@/ai/useVoiceAgent.ts';
 
 type Role = 'user' | 'assistant' | 'system';
 
@@ -12,13 +14,17 @@ export class ChatBox {
   readonly el: HTMLElement;
   private readonly messagesEl: HTMLDivElement;
   private readonly input: HTMLInputElement;
+  private readonly sendBtn: HTMLButtonElement;
   private readonly micBtn: HTMLButtonElement;
+
+  private readonly voice: VoiceAgent;
+  /** Elemento da resposta de voz em streaming (para anexar deltas). */
+  private streamingEl: HTMLElement | null = null;
 
   constructor(private readonly screens: ScreenManager) {
     this.el = document.createElement('section');
     this.el.className = 'chat';
 
-    // Cabeçalho
     const header = document.createElement('div');
     header.className = 'chat__header';
     header.innerHTML = `
@@ -28,11 +34,9 @@ export class ChatBox {
         <div class="chat__subtitle">Chefe de Máquinas — assistente de operação</div>
       </div>`;
 
-    // Mensagens
     this.messagesEl = document.createElement('div');
     this.messagesEl.className = 'chat__messages';
 
-    // Composer
     const composer = document.createElement('form');
     composer.className = 'chat__composer';
 
@@ -41,54 +45,106 @@ export class ChatBox {
     this.input.placeholder = 'Pergunte ao KRATOS…';
     this.input.setAttribute('aria-label', 'Mensagem para o KRATOS');
 
-    const sendBtn = document.createElement('button');
-    sendBtn.type = 'submit';
-    sendBtn.className = 'chat__btn';
-    sendBtn.textContent = 'Enviar';
+    this.sendBtn = document.createElement('button');
+    this.sendBtn.type = 'submit';
+    this.sendBtn.className = 'chat__btn';
+    this.sendBtn.textContent = 'Enviar';
 
     this.micBtn = document.createElement('button');
     this.micBtn.type = 'button';
     this.micBtn.className = 'chat__btn chat__btn--mic';
     this.micBtn.textContent = '🎙️';
-    this.micBtn.setAttribute('aria-label', 'Falar com o KRATOS (em breve)');
+    this.micBtn.setAttribute('aria-label', 'Falar com o KRATOS');
     this.micBtn.setAttribute('aria-pressed', 'false');
-    this.micBtn.title = 'Voz via xAI Realtime — disponível no Sprint 3';
+    this.micBtn.title = 'Conversar por voz (xAI Realtime)';
 
-    composer.append(this.input, sendBtn, this.micBtn);
+    composer.append(this.input, this.sendBtn, this.micBtn);
     this.el.append(header, this.messagesEl, composer);
 
     composer.addEventListener('submit', (e) => {
       e.preventDefault();
-      this.handleSend();
+      void this.handleSend();
     });
-    this.micBtn.addEventListener('click', () => this.handleMicPlaceholder());
+    this.micBtn.addEventListener('click', () => this.toggleVoice());
 
-    // Mensagem de boas-vindas e reação à troca de tela
+    // Agente de voz ciente da tela ativa.
+    this.voice = new VoiceAgent(() => this.screens.current, {
+      onStatus: (s, d) => this.onVoiceStatus(s, d),
+      onUserTranscript: (t) => this.addMessage('user', t),
+      onAssistantDelta: (t) => this.appendAssistantDelta(t),
+      onAssistantDone: () => this.endAssistantStream(),
+      onInterrupted: () => this.markInterrupted(),
+    });
+
     this.screens.subscribe((active) => this.announceScreen(active));
   }
 
-  private handleSend(): void {
+  private context(): ScreenContext {
+    return { equipment: this.screens.current };
+  }
+
+  private async handleSend(): Promise<void> {
     const text = this.input.value.trim();
     if (!text) return;
     this.addMessage('user', text);
     this.input.value = '';
 
-    // Placeholder de resposta (Sprint 3 fará a chamada real ao BFF).
-    const eq = getEquipment(this.screens.current);
-    window.setTimeout(() => {
-      this.addMessage(
-        'assistant',
-        `Recebido. Estamos no painel do ${eq.meta.name}. A resposta com base no ` +
-          `manual será fornecida quando a integração com o xAI Grok estiver ativa (Sprint 3).`,
-      );
-    }, 350);
+    // Se a voz está ativa, manda pela mesma sessão (resposta vem por áudio+texto).
+    if (this.voice.isActive) {
+      this.voice.sendText(text);
+      return;
+    }
+
+    this.sendBtn.disabled = true;
+    try {
+      const reply = await sendChat(text, this.context());
+      this.addMessage('assistant', reply);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'Erro ao consultar o KRATOS.';
+      this.addMessage('system', `⚠️ ${detail}`);
+    } finally {
+      this.sendBtn.disabled = false;
+    }
   }
 
-  private handleMicPlaceholder(): void {
-    this.addMessage(
-      'system',
-      'A conversa por voz (xAI Realtime Voice) será habilitada no Sprint 3.',
-    );
+  private toggleVoice(): void {
+    if (this.voice.isActive) {
+      this.voice.disconnect();
+    } else {
+      void this.voice.connect();
+    }
+  }
+
+  private onVoiceStatus(status: VoiceStatus, detail?: string): void {
+    // Para o usuário: dois estados visíveis (off / ouvindo).
+    const listening = status === 'connecting' || status === 'active';
+    this.micBtn.setAttribute('aria-pressed', String(listening));
+
+    if (status === 'active') {
+      this.addMessage('system', 'Voz ativa — pode falar com o KRATOS.');
+    } else if (status === 'error') {
+      this.addMessage('system', `⚠️ Voz indisponível: ${detail ?? ''}`.trim());
+    }
+  }
+
+  private appendAssistantDelta(text: string): void {
+    if (!this.streamingEl) {
+      this.streamingEl = this.addMessage('assistant', '');
+    }
+    const textEl = this.streamingEl.querySelector<HTMLDivElement>('.msg__text');
+    if (textEl) textEl.textContent += text;
+    this.scrollToEnd();
+  }
+
+  private endAssistantStream(): void {
+    this.streamingEl = null;
+  }
+
+  private markInterrupted(): void {
+    if (this.streamingEl) {
+      this.streamingEl.classList.add('msg--interrupted');
+      this.streamingEl = null;
+    }
   }
 
   private announceScreen(active: EquipmentId): void {
@@ -96,7 +152,7 @@ export class ChatBox {
     this.addMessage('system', `Tela ativa: ${eq.meta.name} — ${eq.meta.model}.`);
   }
 
-  private addMessage(role: Role, text: string): void {
+  private addMessage(role: Role, text: string): HTMLElement {
     const msg = document.createElement('div');
     msg.className = `msg msg--${role}`;
 
@@ -111,6 +167,11 @@ export class ChatBox {
 
     msg.append(roleEl, textEl);
     this.messagesEl.appendChild(msg);
+    this.scrollToEnd();
+    return msg;
+  }
+
+  private scrollToEnd(): void {
     this.messagesEl.scrollTo({ top: this.messagesEl.scrollHeight, behavior: 'smooth' });
   }
 }

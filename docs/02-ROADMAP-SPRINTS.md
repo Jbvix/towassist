@@ -46,23 +46,32 @@ trocar; digitar no chat (resposta simulada até o Sprint 3).
 
 ---
 
-## Sprint 3 — Assistente KRATOS: xAI Grok (texto) + Realtime Voice  ⏳
+## Sprint 3 — Assistente KRATOS: xAI Grok (texto) + Realtime Voice  ✅
 
 **Objetivo:** assistente conversacional **KRATOS** funcional, por texto e voz.
 
-**Entregáveis:**
-- Netlify Functions: `chat.ts` (proxy do Grok, texto) e `realtime-token.ts`
-  (cunha token efêmero de voz). `XAI_API_KEY` só no servidor.
-- `useVoiceAgent()`: WebSocket `grok-voice-latest`, AudioWorklet (mic PCM 24 kHz),
-  playback gapless, VAD/interrupção, transcrição.
-- `frontend/public/pcm-processor-worklet.js`.
-- `ChatBox` (texto + transcript) + `VoiceControls` (botão de microfone/visualizador).
-- Persona **KRATOS** em `shared/prompts/kratos.pt.ts`; contexto da tela ativa.
+**Entregáveis (concluídos):**
+- [x] Netlify Functions: `chat.ts` (proxy do Grok, texto), `realtime-token.ts`
+  (cunha token efêmero de voz) e `health.ts`. `XAI_API_KEY` só no servidor.
+- [x] `lib/grok.ts` — integração com `chat/completions` e `realtime/client_secrets`.
+- [x] `VoiceAgent` (`useVoiceAgent.ts`): WebSocket `grok-voice-latest`, AudioWorklet
+  (mic PCM 24 kHz), playback gapless, VAD/interrupção (barge-in), transcrição,
+  buffer até `session.updated`, renovação de token.
+- [x] `public/pcm-processor-worklet.js` + `src/ai/pcm.ts` (base64 em blocos).
+- [x] `ChatBox` ligada de verdade: texto via `/api/chat`, voz via `VoiceAgent`;
+  transcrição em streaming e mensagem interrompida esmaecida.
+- [x] Persona **KRATOS** (`shared/prompts/kratos.pt.ts`) ciente da tela ativa.
+
+**Verificação:** `npm run build` (frontend) e `tsc` das Functions passam;
+`netlify functions:serve` testado — `/api/health` OK, validação 400/405 OK, e a
+chamada chega à API real do xAI (formato e auth corretos).
 
 **Demo:** conversar por voz com KRATOS (com interrupção) e por texto; trocar de
 tela e ver o assistente ciente do equipamento ativo.
 
-> Especificação detalhada em [`03-AGENTE-VOZ-KRATOS.md`](03-AGENTE-VOZ-KRATOS.md).
+> Requer `XAI_API_KEY` (e opcional `XAI_MODEL`) nas variáveis de ambiente do
+> Netlify. Local: `npx netlify dev`. Especificação:
+> [`03-AGENTE-VOZ-KRATOS.md`](03-AGENTE-VOZ-KRATOS.md).
 
 ---
 

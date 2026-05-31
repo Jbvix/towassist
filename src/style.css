@@ -225,6 +225,24 @@ body {
   font-style: italic;
 }
 
+.msg--interrupted {
+  opacity: 0.5;
+}
+
+.chat__btn--mic[aria-pressed='true'] {
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 60%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
 .chat__composer {
   border-top: 1px solid var(--border);
   padding: 0.6rem;
