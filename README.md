@@ -48,7 +48,7 @@ npx netlify dev                   # serve frontend + /api/* (Functions)
 | 3 | Assistente KRATOS — xAI Grok (texto) + Realtime Voice | ✅ Concluído |
 | 4 | Simulação 2D PixiJS — painel de comando interativo | ✅ Concluído |
 | 5 | Sistema de intertravamento (interlock) | ✅ Concluído |
-| 6 | RAG sobre os manuais + base de conhecimento | ⏳ Planejado |
+| 6 | RAG sobre os manuais (xAI Collections) | ✅ Concluído |
 | 7 | Refinamento, testes e empacotamento | ⏳ Planejado |
 
 Detalhes em [`docs/02-ROADMAP-SPRINTS.md`](docs/02-ROADMAP-SPRINTS.md).

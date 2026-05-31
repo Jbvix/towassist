@@ -23,4 +23,6 @@ export interface ChatResponse {
 export interface RealtimeTokenResponse {
   value: string;
   expires_at: number;
+  /** IDs de collection por equipamento (para o tool file_search), se houver. */
+  collections?: Partial<Record<EquipmentId, string>>;
 }

@@ -129,16 +129,39 @@ intertravamento e no *toast*; perguntar ao KRATOS por quê (ele recebe o estado)
 
 ---
 
-## Sprint 6 — RAG sobre os manuais  ⏳
+## Sprint 6 — RAG sobre os manuais (xAI Collections)  ✅
 
 **Objetivo:** respostas ancoradas na documentação oficial.
 
-**Entregáveis:**
-- `backend/src/rag/` indexador + recuperador sobre os manuais.
-- Respostas do assistente citando trechos/seções dos manuais.
-- Conteúdo de apoio a treinamento e manutenção a partir dos manuais.
+**Decisão técnica:** usar **xAI Collections** (parse/OCR/embeddings no servidor),
+não um índice local. Motivo descoberto ao sondar os PDFs: o manual do
+**KRAAIJVELD (2500P) é escaneado (sem camada de texto)** — um extrator local não
+leria nada sem OCR. O IBERCISA tem texto, mas usar Collections unifica os dois.
 
-**Demo:** perguntar sobre um procedimento e receber resposta com fonte.
+**Entregáveis (concluídos):**
+- [x] `scripts/build-collections.ts` — ingestão (executar 1x com a Management
+  API key): cria uma collection por equipamento e faz upload do PDF.
+- [x] `netlify/functions/lib/rag.ts` — `retrieveManualContext()` via
+  `POST /v1/documents/search`; **degrada com elegância** se a collection não
+  estiver configurada.
+- [x] `chat.ts` injeta os trechos do manual no prompt do KRATOS (texto).
+- [x] Voz: `realtime-token.ts` devolve os IDs das collections e o `VoiceAgent`
+  adiciona o tool `file_search` à sessão (citações por voz).
+- [x] Variáveis: `XAI_COLLECTION_KRAAIJVELD` / `XAI_COLLECTION_IBERCISA`.
+
+**Como ativar:**
+1. `export XAI_MANAGEMENT_API_KEY=...`
+2. `node --experimental-strip-types scripts/build-collections.ts`
+3. Copie os IDs impressos para as variáveis de ambiente do Netlify.
+
+**Verificação:** build, typecheck das Functions e testes passam; chat testado
+localmente — o caminho RAG é não-bloqueante (sem collection ⇒ responde sem
+citação).
+
+**Demo:** perguntar sobre um procedimento e receber resposta citando o manual.
+
+> Permite **validar/refinar as regras de intertravamento** (Sprint 5), hoje
+> didáticas, contra o conteúdo real dos manuais.
 
 ---
 

@@ -45,6 +45,8 @@ export class VoiceAgent {
 
   private tokenTimer: number | null = null;
   private getEquipment: () => EquipmentId;
+  /** Collections por equipamento (para o tool file_search), vindas do BFF. */
+  private collections: Partial<Record<EquipmentId, string>> = {};
 
   constructor(
     getActiveEquipment: () => EquipmentId,
@@ -143,6 +145,7 @@ export class VoiceAgent {
       throw new Error((err as { error?: string }).error || 'Falha ao obter token de voz.');
     }
     const token = (await res.json()) as RealtimeTokenResponse;
+    if (token.collections) this.collections = token.collections;
     this.scheduleTokenRefresh(token.expires_at);
     return token;
   }
@@ -168,14 +171,25 @@ export class VoiceAgent {
     this.sessionReady = false;
 
     ws.onopen = () => {
+      const equipment = this.getEquipment();
+      const tools: Array<Record<string, unknown>> = [
+        { type: 'web_search' },
+        { type: 'x_search' },
+      ];
+      // RAG por voz: inclui file_search se houver collection para o equipamento.
+      const collectionId = this.collections[equipment];
+      if (collectionId) {
+        tools.push({ type: 'file_search', vector_store_ids: [collectionId], max_num_results: 8 });
+      }
+
       ws.send(
         JSON.stringify({
           type: 'session.update',
           session: {
             voice: VOICE,
-            instructions: buildKratosInstructions(this.getEquipment()),
+            instructions: buildKratosInstructions(equipment),
             turn_detection: { type: 'server_vad' },
-            tools: [{ type: 'web_search' }, { type: 'x_search' }],
+            tools,
             input_audio_transcription: { model: 'grok-2-audio' },
             audio: {
               input: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
