@@ -1,11 +1,11 @@
-// Engine de simulação 2D (PixiJS). Sprint 4: painel interativo.
-// Desenha os controles a partir dos dados, aceita interação do usuário,
-// mantém o PanelState e anima os mostradores via ticker.
+// Engine de simulação 2D (PixiJS). Painel interativo com seções agrupadas.
+// A INTERAÇÃO usa hit-testing no canvas (evento DOM 'click'), que é robusto e
+// independente das particularidades do sistema de eventos do PixiJS.
 
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import type { EquipmentDefinition, EquipmentId, PanelControl } from '@shared/types/equipment.ts';
 import { PanelState, type PanelValues } from '@/sim/state.ts';
-import { ControlNode, type ControlIntent } from '@/sim/components/ControlNode.ts';
+import { ControlNode, NODE_W, NODE_H, type ControlIntent } from '@/sim/components/ControlNode.ts';
 import { InterlockEngine } from '@/interlock/InterlockEngine.ts';
 import { getRuleset } from '@/interlock/rules/index.ts';
 import type { InterlockEvaluation } from '@/interlock/types.ts';
@@ -18,11 +18,20 @@ const GROUP_TITLES: Record<string, string> = {
 };
 const GROUP_ORDER = ['energia', 'comando', 'instrumentacao'];
 
+/** Retângulo de toque de um controle, em coordenadas lógicas (CSS px). */
+interface HitRect {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export class Simulator {
-  private static instances = 0;
   private readonly app = new Application();
   private panel: Container | null = null;
   private nodes = new Map<string, ControlNode>();
+  private hitRects: HitRect[] = [];
   private currentDef: EquipmentDefinition | null = null;
   private state: PanelState | null = null;
   private interlock: InterlockEngine | null = null;
@@ -30,11 +39,6 @@ export class Simulator {
   private resizeObserver: ResizeObserver | null = null;
   private initialized = false;
   private lastTime = 0;
-  /** Anti-duplicação: ignora acionamentos repetidos do mesmo controle em poucos ms. */
-  private lastIntentAt = new Map<string, number>();
-  /** Diagnóstico: identifica esta instância e quantas vezes renderizou. */
-  private readonly instanceId = ++Simulator.instances;
-  private renderCount = 0;
 
   /** Notificado quando o estado do painel muda (para contexto do KRATOS). */
   onStateChange: ((values: PanelValues) => void) | null = null;
@@ -54,10 +58,9 @@ export class Simulator {
     host.appendChild(this.app.canvas);
     this.initialized = true;
 
-    // Habilita o sistema de eventos a partir do stage (sem isto, no PixiJS v8
-    // o hit-testing não começa e os controles não recebem clique).
-    this.app.stage.eventMode = 'static';
-    this.app.stage.hitArea = this.app.screen;
+    // Interação robusta: clique no canvas (DOM) + hit-testing manual.
+    this.app.canvas.style.touchAction = 'manipulation';
+    this.app.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
 
     this.resizeObserver = new ResizeObserver(() => this.layout());
     this.resizeObserver.observe(host);
@@ -69,9 +72,6 @@ export class Simulator {
   /** Carrega/desenha o painel de um equipamento e (re)cria o estado. */
   render(def: EquipmentDefinition): void {
     if (!this.initialized) return;
-    console.debug(
-      `[TowAssist] Simulator#${this.instanceId} render #${++this.renderCount} (${def.meta.id})`,
-    );
     this.accent = cssColorToHex(def.meta.accent, 0x2f9e8f);
 
     if (this.panel) {
@@ -93,7 +93,7 @@ export class Simulator {
     });
 
     for (const control of def.controls) {
-      const node = new ControlNode(control, this.accent, (intent) => this.handleIntent(intent));
+      const node = new ControlNode(control, this.accent);
       this.nodes.set(control.id, node);
     }
     this.layout();
@@ -104,33 +104,42 @@ export class Simulator {
     return this.state?.snapshot ?? {};
   }
 
+  /** Clique no canvas → encontra o controle sob o cursor e o aciona. */
+  private handleCanvasClick(e: MouseEvent): void {
+    const rect = this.app.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Procura de cima para baixo (último desenhado primeiro não importa: sem sobreposição).
+    for (const r of this.hitRects) {
+      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+        const node = this.nodes.get(r.id);
+        if (!node || !node.isInteractive || !node.isEnabled) return;
+        const intent: ControlIntent =
+          node.control.kind === 'lever'
+            ? { kind: 'set', id: r.id, value: cycleLever(node.currentValue) }
+            : { kind: 'toggle', id: r.id };
+        this.handleIntent(intent);
+        return;
+      }
+    }
+  }
+
   private handleIntent(intent: ControlIntent): void {
     if (!this.state) return;
-
-    // Guard anti-duplicação: alguns ambientes (touch/trackpad) entregam o
-    // evento de ponteiro duas vezes, o que faria ligar e desligar no mesmo
-    // instante. Ignora um segundo acionamento do mesmo controle em < 280 ms.
-    const now = performance.now();
-    const last = this.lastIntentAt.get(intent.id) ?? 0;
-    const dt = now - last;
-    if (dt < 280) {
-      console.debug('[TowAssist] intent IGNORADO (duplo)', intent.id, 'dt=', Math.round(dt), 'ms');
-      return;
-    }
-    this.lastIntentAt.set(intent.id, now);
-
     const current = this.state.get(intent.id);
-    const next =
-      intent.kind === 'toggle' ? (current >= 0.5 ? 0 : 1) : intent.value;
-    console.debug(
-      `[TowAssist] intent ${intent.id}: ${current} -> ${next}  (sim#${this.instanceId})`,
-    );
+    const next = intent.kind === 'toggle' ? (current >= 0.5 ? 0 : 1) : intent.value;
 
     // Desligar / voltar ao neutro é sempre permitido (segurança).
     // Acionar (ligar / sair do neutro) passa pelo intertravamento.
     const isActivation = Math.abs(next) > Math.abs(current);
-    if (isActivation && this.interlock && !this.interlock.isAllowed(intent.id, this.state.snapshot)) {
-      const blockedBy = this.interlock.evaluate(this.state.snapshot).controls[intent.id]?.blockedBy ?? [];
+    if (
+      isActivation &&
+      this.interlock &&
+      !this.interlock.isAllowed(intent.id, this.state.snapshot)
+    ) {
+      const blockedBy =
+        this.interlock.evaluate(this.state.snapshot).controls[intent.id]?.blockedBy ?? [];
       const node = this.nodes.get(intent.id);
       node?.flashBlocked();
       this.onBlocked?.(intent.id, node?.control.label ?? intent.id, blockedBy);
@@ -152,8 +161,6 @@ export class Simulator {
     const evalResult = this.interlock.evaluate(values);
     for (const [id, node] of this.nodes) {
       const ev = evalResult.controls[id];
-      // Um controle bloqueado só fica "desabilitado" quando está desligado;
-      // se já estiver acionado, mantém-se habilitado para poder ser desligado.
       const isOn = Math.abs(values[id] ?? 0) >= 0.5;
       const enabled = !ev || ev.allowed || isOn;
       node.setEnabled(enabled);
@@ -172,27 +179,25 @@ export class Simulator {
   private layout(): void {
     if (!this.panel || !this.currentDef) return;
     const panel = this.panel;
-    const { width, height } = this.app.renderer;
+    // Coordenadas lógicas (CSS px) — casam com o clique DOM (getBoundingClientRect).
+    const { width, height } = this.app.renderer.screen;
 
-    // --- Geometria de projeto (virtual), escalada para caber na tela ---
-    const CELL_W = 184; // largura do controle + respiro
+    const CELL_W = 184;
     const CELL_H = 96;
     const COL_GAP = 18;
     const ROW_GAP = 16;
-    const PAD = 26; // padding interno da seção
+    const PAD = 26;
     const TITLE_H = 30;
     const SECTION_GAP = 26;
     const OUTER = 36;
 
-    // Agrupa os controles preservando a ordem dos dados.
     const groups = this.groupControls(this.currentDef.controls);
-
-    // Número de colunas por seção: adapta ao formato da viewport.
     const portrait = height > width * 1.15;
     const maxCols = portrait ? 2 : 3;
 
-    // Limpa qualquer decoração anterior e re-popula (frames + títulos + nós).
     panel.removeChildren();
+    // Posições dos nós no espaço de projeto (antes da escala/translação).
+    const placed: Array<{ id: string; nx: number; ny: number }> = [];
 
     let y = OUTER;
     let designW = 0;
@@ -206,14 +211,12 @@ export class Simulator {
       const sectionH = TITLE_H + innerH + PAD * 2;
       designW = Math.max(designW, sectionW + OUTER * 2);
 
-      // Moldura da seção.
       const frame = new Graphics()
         .roundRect(OUTER, y, sectionW, sectionH, 16)
         .fill({ color: 0x0e141b, alpha: 0.6 })
         .stroke({ width: 1, color: 0x223040 });
       panel.addChild(frame);
 
-      // Título da seção.
       const title = new Text({
         text: GROUP_TITLES[group] ?? group.toUpperCase(),
         style: new TextStyle({
@@ -227,7 +230,6 @@ export class Simulator {
       title.position.set(OUTER + PAD, y + PAD - 6);
       panel.addChild(title);
 
-      // Controles em grade dentro da seção.
       controls.forEach((control, i) => {
         const node = this.nodes.get(control.id);
         if (!node) return;
@@ -237,6 +239,7 @@ export class Simulator {
         const cy = y + TITLE_H + PAD + row * (CELL_H + ROW_GAP) + CELL_H / 2;
         node.container.position.set(cx, cy);
         panel.addChild(node.container);
+        placed.push({ id: control.id, nx: cx, ny: cy });
       });
 
       y += sectionH + SECTION_GAP;
@@ -244,13 +247,22 @@ export class Simulator {
 
     const designH = y - SECTION_GAP + OUTER;
 
-    // Escala "contain": cabe tudo, mantém proporção; centraliza.
     const scale = Math.min(width / designW, height / designH, 1.15);
+    const ox = Math.max(0, (width - designW * scale) / 2);
+    const oy = Math.max(0, (height - designH * scale) / 2);
     panel.scale.set(scale);
-    panel.position.set(
-      Math.max(0, (width - designW * scale) / 2),
-      Math.max(0, (height - designH * scale) / 2),
-    );
+    panel.position.set(ox, oy);
+
+    // Recalcula os retângulos de toque em coordenadas de tela (CSS px).
+    const halfW = (NODE_W / 2) * scale;
+    const halfH = (NODE_H / 2) * scale;
+    this.hitRects = placed.map((p) => ({
+      id: p.id,
+      x: ox + p.nx * scale - halfW,
+      y: oy + p.ny * scale - halfH,
+      w: halfW * 2,
+      h: halfH * 2,
+    }));
   }
 
   /** Agrupa os controles por `group`, na ordem canônica; sem grupo vai por último. */
@@ -282,6 +294,11 @@ export class Simulator {
       this.initialized = false;
     }
   }
+}
+
+function cycleLever(value: number): number {
+  // SOLTAR(-1) → NEUTRO(0) → RECOLHER(1) → SOLTAR(-1)...
+  return value >= 1 ? -1 : value < 0 ? 0 : 1;
 }
 
 /** Converte "#rrggbb" em número hex; usa fallback se inválido. */
