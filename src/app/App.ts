@@ -1,6 +1,7 @@
 // Monta a aplicação: cabeçalho + alternador de telas, painel de simulação e chat.
 
 import type { EquipmentId } from '@shared/types/equipment.ts';
+import { APP_VERSION, APP_AUTHOR } from '@shared/meta.ts';
 import { getEquipment } from '@/data/index.ts';
 import { ScreenManager } from '@/app/ScreenManager.ts';
 import { PanelStore } from '@/app/PanelStore.ts';
@@ -43,7 +44,17 @@ export class App {
       '<h1 class="app-title__name">TowAssist</h1><span>Guinchos de Manobra · KRATOS</span>';
 
     const switcher = new ScreenSwitcher(this.screens);
-    header.append(title, switcher.el);
+
+    // Crédito de autor + versão (discreto, à direita do alternador).
+    const meta = document.createElement('div');
+    meta.className = 'app-meta';
+    meta.title = `${APP_AUTHOR} · versão ${APP_VERSION}`;
+    meta.innerHTML = `<span class="app-meta__ver">v${APP_VERSION}</span><span class="app-meta__author">por ${APP_AUTHOR}</span>`;
+
+    const right = document.createElement('div');
+    right.className = 'app-header__right';
+    right.append(switcher.el, meta);
+    header.append(title, right);
 
     // Corpo: simulação + chat
     const body = document.createElement('main');

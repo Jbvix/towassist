@@ -1,5 +1,147 @@
 /* TowAssist — estilos base (tema escuro). Layout preenche a viewport. */
 
+/* ===== Splash de abertura ===== */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 35%, #11202a 0%, #0a0e12 70%);
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+
+.splash--hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash__inner {
+  width: min(90%, 460px);
+  text-align: center;
+  padding: 1.5rem;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #e7edf3;
+}
+
+.splash__logo {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto 1.2rem;
+  border-radius: 26px;
+  background: linear-gradient(150deg, #2f9e8f 0%, #1c6b61 100%);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 0 rgba(47, 158, 143, 0.5);
+  animation: splash-pulse 2.2s ease-in-out infinite;
+}
+
+.splash__logo-k {
+  font-size: 64px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes splash-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(47, 158, 143, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(47, 158, 143, 0);
+  }
+}
+
+.splash__title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin: 0 0 0.4rem;
+  letter-spacing: 0.02em;
+}
+
+.splash__tagline {
+  font-size: 0.9rem;
+  color: #9fb0c0;
+  line-height: 1.5;
+  margin: 0 auto 1rem;
+  max-width: 380px;
+}
+
+.splash__assistant {
+  font-size: 0.85rem;
+  color: #c7d3de;
+  margin-bottom: 1.5rem;
+}
+
+.splash__assistant strong {
+  color: #2f9e8f;
+}
+
+.splash__progress {
+  height: 8px;
+  background: #1c2530;
+  border: 1px solid #2a3542;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.splash__bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2f9e8f, #3fb37a);
+  border-radius: 999px;
+  transition: width 0.2s linear;
+}
+
+.splash__status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: #9fb0c0;
+}
+
+.splash__step {
+  text-align: left;
+}
+
+.splash__pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #e7edf3;
+}
+
+.splash__skip {
+  margin-top: 1.4rem;
+  appearance: none;
+  background: transparent;
+  border: 1px solid #2a3542;
+  color: #9fb0c0;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.splash__skip:hover {
+  border-color: #2f9e8f;
+  color: #e7edf3;
+}
+
+.splash__footer {
+  margin-top: 1.6rem;
+  font-size: 0.74rem;
+  color: #5b6b7a;
+}
+
 :root {
   --bg: #0a0e12;
   --bg-elev: #141a21;
@@ -65,6 +207,36 @@ body {
 .app-title span {
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.app-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.app-meta__ver {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.app-meta__author {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 860px) {
+  .app-meta {
+    display: none;
+  }
 }
 
 /* ---- Alternador de telas ---- */

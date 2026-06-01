@@ -1,7 +1,8 @@
 {
   "name": "towassist",
   "private": true,
-  "version": "0.2.0",
+  "version": "1.0.0",
+  "author": "Jossian Brito",
   "type": "module",
   "description": "Agente de inteligência de apoio a treinamento, operação e manutenção dos Guinchos de Manobra KRAAIJVELD e IBERCISA.",
   "scripts": {
