@@ -289,40 +289,38 @@ body {
     border-bottom: 1px solid var(--border);
   }
 
-  /* Altura útil para a simulação caber sem ficar espremida. */
-  .sim-panel__canvas {
-    height: 56vh;
-    min-height: 300px;
+  /* No mobile o stage empilha: canvas em cima, trilha de sinaleiros embaixo. */
+  .sim-panel__stage {
+    flex-direction: column;
   }
 
-  /* Intertravamento no mobile: trilha de sinaleiros vira faixa horizontal no
-     fluxo (abaixo da simulação); não sobrepõe o canvas. */
+  .sim-panel__canvas {
+    height: 50vh;
+    min-height: 260px;
+  }
+
+  /* Trilha vira faixa horizontal de sinaleiros, no fluxo (abaixo do canvas). */
   .interlock {
-    position: static;
-    display: block;
+    flex: 0 0 auto;
   }
 
   .interlock__rail {
     flex-direction: row;
     flex-wrap: wrap;
-    justify-content: flex-start;
+    justify-content: center;
     border-left: 0;
     border-top: 1px solid var(--border);
-    background: var(--bg-elev);
   }
 
   .interlock__signal {
     flex-direction: row;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 6px 12px;
   }
 
-  /* Painel completo abre como sobreposição fixa na tela inteira (não no canvas). */
+  /* Painel completo abre como sobreposição fixa na tela. */
   .interlock__panel {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
     width: 86vw;
     max-width: 360px;
     z-index: 40;
@@ -413,8 +411,18 @@ body {
   }
 }
 
+/* "Stage": canvas + trilha de intertravamento lado a lado. */
+.sim-panel__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
 .sim-panel__canvas {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   position: relative;
 }
@@ -425,31 +433,24 @@ body {
   height: 100%;
 }
 
-/* ---- Intertravamento: trilha de sinaleiros + painel deslizante ---- */
+/* ---- Intertravamento: trilha (no fluxo) + painel deslizante (overlay) ---- */
 .interlock {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 16;
+  flex: 0 0 auto;
+  align-self: stretch;
   display: flex;
-  align-items: stretch;
-  pointer-events: none; /* só a trilha e o painel capturam eventos */
   font-size: 0.82rem;
 }
 
-/* Trilha SEMPRE visível na borda direita, com os mini-sinaleiros. */
+/* Trilha SEMPRE visível: coluna de sinaleiros à direita do canvas. */
 .interlock__rail {
-  pointer-events: auto;
   align-self: stretch;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 8px;
   padding: 8px 6px;
-  background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
+  background: var(--bg-elev);
   border-left: 1px solid var(--border);
-  backdrop-filter: blur(6px);
   overflow-y: auto;
 }
 
@@ -513,24 +514,30 @@ body {
   color: #ffd9d2;
 }
 
-/* Painel completo: desliza sobre a simulação quando um sinaleiro é tocado. */
+/* Painel completo: desliza sobre o stage quando um sinaleiro é tocado.
+   Absoluto em relação ao .sim-panel__stage (não cria vão no fluxo). */
 .interlock__panel {
-  pointer-events: auto;
-  width: 280px;
-  max-width: 84vw;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 18;
+  width: 300px;
+  max-width: 86%;
   overflow-y: auto;
-  background: color-mix(in srgb, var(--bg-elev) 97%, transparent);
+  background: color-mix(in srgb, var(--bg-elev) 98%, transparent);
   border-left: 1px solid var(--border);
   padding: 12px 14px;
   backdrop-filter: blur(8px);
-  transform: translateX(calc(100% + 60px));
+  transform: translateX(110%);
   transition: transform 0.28s ease;
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.45);
+  visibility: hidden;
 }
 
 .interlock--open .interlock__panel {
   transform: translateX(0);
+  visibility: visible;
 }
 
 .interlock__close {
