@@ -17,6 +17,14 @@ describe('PanelState — KRAAIJVELD', () => {
     expect(s.get('status_ready')).toBe(0);
   });
 
+  it('REGRESSÃO: o tick NÃO desliga um controle ligado (energia)', () => {
+    const s = new PanelState(def);
+    s.set('main_power', 1);
+    // Avança vários quadros de animação; a energia deve PERMANECER ligada.
+    for (let i = 0; i < 60; i++) s.tick(0.05);
+    expect(s.get('main_power')).toBe(1);
+  });
+
   it('fica pronto com energia + bomba (sem parada de emergência)', () => {
     const s = new PanelState(def);
     s.set('main_power', 1);

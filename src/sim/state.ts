@@ -35,7 +35,13 @@ export class PanelState {
     this.targets = {};
     for (const c of def.controls) {
       this.values[c.id] = 0;
-      this.targets[c.id] = 0;
+      // IMPORTANTE: apenas mostradores (gauges) são animados pelo tick().
+      // Controles de entrada (botões/seletores/alavancas) NÃO entram em
+      // `targets`, senão o tick os puxaria de volta a 0 logo após o clique
+      // (causava "liga e desliga sozinho").
+      if (c.kind === 'gauge') {
+        this.targets[c.id] = 0;
+      }
     }
     this.emit();
   }
@@ -109,10 +115,9 @@ export class PanelState {
     if (loadId) {
       this.targets[loadId] = ready ? Math.min(1, Math.abs(lever) * 0.8 + 0.1) : 0;
     }
-    // Indicador "pronto p/ operar".
+    // Indicador "pronto p/ operar" (não é animado; valor direto).
     if (ids.has('status_ready')) {
       this.values['status_ready'] = ready ? 1 : 0;
-      this.targets['status_ready'] = ready ? 1 : 0;
     }
   }
 
