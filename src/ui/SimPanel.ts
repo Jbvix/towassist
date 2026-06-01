@@ -46,10 +46,15 @@ export class SimPanel {
 
     // Overlays transitórios que ficam SOBRE o canvas (toast, tooltip).
     this.canvasHost.append(this.toastEl, this.tooltipEl);
-    // Guia de partida: irmã do canvas. No desktop flutua como faixa no topo
-    // do canvas; no mobile flui como faixa entre o cabeçalho e o canvas.
-    // Intertravamento: trilha de sinaleiros (desktop overlay; mobile no fluxo).
-    this.el.append(this.metaEl, this.guideEl, this.canvasHost, this.interlockPanel.el);
+
+    // "Stage": canvas + trilha de intertravamento lado a lado (flex), sem
+    // posicionamento absoluto que cause vãos/sobreposição.
+    const stage = document.createElement('div');
+    stage.className = 'sim-panel__stage';
+    stage.append(this.canvasHost, this.interlockPanel.el);
+
+    // Ordem em fluxo: meta → guia → stage (canvas | intertravamento).
+    this.el.append(this.metaEl, this.guideEl, stage);
 
     // Repassa o estado do painel ao store (consumido pelo chat do KRATOS)
     // e destaca visualmente quando o sistema fica "Pronto p/ Operar".
