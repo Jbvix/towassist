@@ -118,8 +118,9 @@ export class ControlNode {
 
     // 'pointertap' = um clique/toque idiomático (pointerdown+up no mesmo alvo),
     // evitando disparos duplicados de pointerdown e acionamento ao rolar a tela.
-    const onActivate = (e?: { stopPropagation?: () => void }) => {
+    const onActivate = (e?: { stopPropagation?: () => void; type?: string }) => {
       e?.stopPropagation?.();
+      console.debug('[TowAssist] evento controle', c.id, e?.type, 'enabled=', this.enabled);
       if (!this.enabled) return;
       if (c.kind === 'lever') {
         const next = this.value >= 1 ? -1 : this.value < 0 ? 0 : 1;

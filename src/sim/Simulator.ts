@@ -31,6 +31,10 @@ export class Simulator {
   private lastTime = 0;
   /** Anti-duplicação: ignora acionamentos repetidos do mesmo controle em poucos ms. */
   private lastIntentAt = new Map<string, number>();
+  /** Diagnóstico: identifica esta instância e quantas vezes renderizou. */
+  private readonly instanceId = ++Simulator.instances;
+  private renderCount = 0;
+  private static instances = 0;
 
   /** Notificado quando o estado do painel muda (para contexto do KRATOS). */
   onStateChange: ((values: PanelValues) => void) | null = null;
@@ -65,6 +69,9 @@ export class Simulator {
   /** Carrega/desenha o painel de um equipamento e (re)cria o estado. */
   render(def: EquipmentDefinition): void {
     if (!this.initialized) return;
+    console.debug(
+      `[TowAssist] Simulator#${this.instanceId} render #${++this.renderCount} (${def.meta.id})`,
+    );
     this.accent = cssColorToHex(def.meta.accent, 0x2f9e8f);
 
     if (this.panel) {
@@ -105,12 +112,19 @@ export class Simulator {
     // instante. Ignora um segundo acionamento do mesmo controle em < 280 ms.
     const now = performance.now();
     const last = this.lastIntentAt.get(intent.id) ?? 0;
-    if (now - last < 280) return;
+    const dt = now - last;
+    if (dt < 280) {
+      console.debug('[TowAssist] intent IGNORADO (duplo)', intent.id, 'dt=', Math.round(dt), 'ms');
+      return;
+    }
     this.lastIntentAt.set(intent.id, now);
 
     const current = this.state.get(intent.id);
     const next =
       intent.kind === 'toggle' ? (current >= 0.5 ? 0 : 1) : intent.value;
+    console.debug(
+      `[TowAssist] intent ${intent.id}: ${current} -> ${next}  (sim#${this.instanceId})`,
+    );
 
     // Desligar / voltar ao neutro é sempre permitido (segurança).
     // Acionar (ligar / sair do neutro) passa pelo intertravamento.

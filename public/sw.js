@@ -3,7 +3,7 @@
 // offline); assets estáticos = stale-while-revalidate. NUNCA cacheia /api/*
 // (chat/voz/RAG precisam sempre da rede).
 
-const CACHE = 'towassist-v1';
+const CACHE = 'towassist-v2';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon.svg'];
 
 self.addEventListener('install', (event) => {
