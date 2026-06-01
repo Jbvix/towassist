@@ -380,7 +380,10 @@ export class Simulator {
     }));
 
     // Tambor: overlay no canto superior esquerdo (não interfere no grid).
+    // Em telas estreitas é ocultado para liberar espaço (evita sobreposição).
     if (this.drum) {
+      const narrow = width < 560;
+      this.drum.container.visible = !narrow;
       const margin = 70 * scale;
       this.drum.container.scale.set(scale);
       this.drum.container.position.set(margin, margin);

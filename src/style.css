@@ -295,9 +295,37 @@ body {
     min-height: 300px;
   }
 
-  /* Intertravamento: drawer cobre a área da simulação ao abrir (inicia fechado). */
+  /* Intertravamento no mobile: trilha de sinaleiros vira faixa horizontal no
+     fluxo (abaixo da simulação); não sobrepõe o canvas. */
+  .interlock {
+    position: static;
+    display: block;
+  }
+
+  .interlock__rail {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+
+  .interlock__signal {
+    flex-direction: row;
+    gap: 6px;
+    padding: 6px 10px;
+  }
+
+  /* Painel completo abre como sobreposição fixa na tela inteira (não no canvas). */
   .interlock__panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
     width: 86vw;
+    max-width: 360px;
+    z-index: 40;
   }
 
   /* Chat com altura própria (não colapsa). */
@@ -331,15 +359,10 @@ body {
     padding: 0.45rem 0.7rem;
   }
 
-  /* Guia de partida: faixa no topo do canvas, largura total (não centralizada). */
+  /* Guia de partida: já flui no topo; só reduz a fonte no mobile. */
   .sim-panel__guide {
-    left: 8px;
-    right: 8px;
-    top: 8px;
-    transform: none;
-    max-width: none;
     font-size: 0.78rem;
-    padding: 6px 12px 6px 6px;
+    margin: 6px 8px 0;
   }
 }
 
@@ -660,23 +683,19 @@ body {
 }
 
 /* ---- Guia de partida assistida ---- */
+/* Guia de partida: faixa no fluxo (entre o cabeçalho da simulação e o canvas),
+   nunca sobre o canvas — evita sobreposição com o painel e o tambor. */
 .sim-panel__guide {
-  position: absolute;
-  left: 50%;
-  top: 12px;
-  transform: translateX(-50%);
-  max-width: min(560px, 90%);
-  z-index: 15;
   display: flex;
   align-items: center;
   gap: 10px;
+  margin: 8px 10px 0;
   background: color-mix(in srgb, var(--bg-elev-2) 95%, transparent);
   border: 1px solid var(--accent);
   border-radius: 999px;
-  padding: 8px 16px 8px 8px;
-  font-size: 0.88rem;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(6px);
+  padding: 7px 16px 7px 7px;
+  font-size: 0.86rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .sim-panel__guide-badge {
