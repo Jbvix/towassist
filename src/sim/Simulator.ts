@@ -6,6 +6,7 @@ import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import type { EquipmentDefinition, EquipmentId, PanelControl } from '@shared/types/equipment.ts';
 import { PanelState, type PanelValues } from '@/sim/state.ts';
 import { ControlNode, NODE_W, NODE_H, type ControlIntent } from '@/sim/components/ControlNode.ts';
+import { DrumView } from '@/sim/components/DrumView.ts';
 import { InterlockEngine } from '@/interlock/InterlockEngine.ts';
 import { getRuleset } from '@/interlock/rules/index.ts';
 import type { InterlockEvaluation } from '@/interlock/types.ts';
@@ -39,6 +40,8 @@ export class Simulator {
   private resizeObserver: ResizeObserver | null = null;
   private initialized = false;
   private lastTime = 0;
+  /** Visualização do tambor/cabo (overlay, canto superior esquerdo). */
+  private drum: DrumView | null = null;
   /** Arraste em curso de uma alavanca (id + se houve movimento). */
   private dragging: { id: string; rect: HitRect; moved: boolean } | null = null;
   /** Marca que o último gesto foi um arraste (suprime o clique seguinte). */
@@ -113,6 +116,15 @@ export class Simulator {
       const node = new ControlNode(control, this.accent);
       this.nodes.set(control.id, node);
     }
+
+    // Visualização do tambor/cabo (overlay no canto superior esquerdo).
+    if (this.drum) {
+      this.app.stage.removeChild(this.drum.container);
+      this.drum.container.destroy({ children: true });
+    }
+    this.drum = new DrumView(this.accent);
+    this.app.stage.addChild(this.drum.container);
+
     this.layout();
   }
 
@@ -234,6 +246,13 @@ export class Simulator {
     for (const [id, node] of this.nodes) {
       node.setValue(values[id] ?? 0);
     }
+    // Alimenta a visualização do tambor: tensão/carga + sentido da alavanca.
+    if (this.drum) {
+      const tension = values['line_tension'] ?? values['load_cell'] ?? 0;
+      const lever = values['drum_lever'] ?? values['winch_joystick'] ?? 0;
+      const direction = lever > 0.25 ? 1 : lever < -0.25 ? -1 : 0;
+      this.drum.update(tension, direction);
+    }
   }
 
   /** Reavalia o intertravamento e atualiza o estado visual dos controles. */
@@ -250,11 +269,11 @@ export class Simulator {
   }
 
   private update(): void {
-    if (!this.state) return;
     const now = performance.now();
     const dt = (now - this.lastTime) / 1000;
     this.lastTime = now;
-    this.state.tick(dt);
+    this.state?.tick(dt);
+    this.drum?.tick(dt);
   }
 
   private layout(): void {
@@ -344,6 +363,13 @@ export class Simulator {
       w: halfW * 2,
       h: halfH * 2,
     }));
+
+    // Tambor: overlay no canto superior esquerdo (não interfere no grid).
+    if (this.drum) {
+      const margin = 70 * scale;
+      this.drum.container.scale.set(scale);
+      this.drum.container.position.set(margin, margin);
+    }
   }
 
   /** Agrupa os controles por `group`, na ordem canônica; sem grupo vai por último. */
