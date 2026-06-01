@@ -118,14 +118,14 @@ export class ControlNode {
 
     if (c.kind === 'lever') {
       // Alavanca de 3 posições: clique cicla SOLTAR(-1) → NEUTRO(0) → RECOLHER(1).
-      this.container.on('pointertap', () => {
+      this.container.on('pointerdown', () => {
         if (!this.enabled) return;
         const next = this.value >= 1 ? -1 : this.value < 0 ? 0 : 1;
         this.onIntent({ kind: 'set', id: c.id, value: next });
       });
     } else {
       // button / selector: alterna 0/1.
-      this.container.on('pointertap', () => {
+      this.container.on('pointerdown', () => {
         if (!this.enabled) return;
         this.onIntent({ kind: 'toggle', id: c.id });
       });

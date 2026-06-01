@@ -48,6 +48,11 @@ export class Simulator {
     host.appendChild(this.app.canvas);
     this.initialized = true;
 
+    // Habilita o sistema de eventos a partir do stage (sem isto, no PixiJS v8
+    // o hit-testing não começa e os controles não recebem clique).
+    this.app.stage.eventMode = 'static';
+    this.app.stage.hitArea = this.app.screen;
+
     this.resizeObserver = new ResizeObserver(() => this.layout());
     this.resizeObserver.observe(host);
 
