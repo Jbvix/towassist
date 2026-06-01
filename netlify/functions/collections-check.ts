@@ -24,15 +24,31 @@ async function probe(collectionId: string): Promise<{ ok: boolean; detail: strin
     const t = await res.text().catch(() => '');
     return { ok: false, detail: `busca respondeu ${res.status}: ${t.slice(0, 160)}` };
   }
-  const data = (await res.json().catch(() => null)) as
-    | { results?: Array<{ content?: string; text?: string }>; chunks?: Array<{ content?: string; text?: string }> }
+  const raw = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  const data = raw as
+    | {
+        results?: Array<Record<string, unknown>>;
+        chunks?: Array<Record<string, unknown>>;
+        data?: Array<Record<string, unknown>>;
+      }
     | null;
-  const items = data?.results ?? data?.chunks ?? [];
-  const sample = (items[0]?.content ?? items[0]?.text ?? '').slice(0, 120);
+  const items = data?.results ?? data?.chunks ?? data?.data ?? [];
+  const first = items[0] ?? {};
+  const sample = String(
+    first.content ?? first.text ?? first.chunk_content ?? '',
+  ).slice(0, 120);
+
+  if (items.length === 0) {
+    // Mostra as chaves do payload para diagnosticar nome de campo divergente.
+    const keys = raw ? Object.keys(raw).join(', ') : '(sem corpo)';
+    return { ok: true, detail: `busca ok — 0 trecho(s). Chaves da resposta: [${keys}]` };
+  }
+  const keys = Object.keys(first).join(', ');
   return {
     ok: true,
     detail:
-      `busca ok — ${items.length} trecho(s)` + (sample ? ` · amostra: "${sample}…"` : ' (vazio)'),
+      `busca ok — ${items.length} trecho(s)` +
+      (sample ? ` · amostra: "${sample}…"` : ` · campos do trecho: [${keys}]`),
   };
 }
 

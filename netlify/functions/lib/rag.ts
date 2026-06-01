@@ -23,7 +23,21 @@ export function collectionIdFor(equipment: EquipmentId): string | null {
 interface SearchChunk {
   content?: string;
   text?: string;
+  chunk_content?: string;
+  chunk?: { content?: string; text?: string };
   score?: number;
+}
+
+/** Extrai o texto de um trecho, tolerando variações do payload da xAI. */
+function chunkText(c: SearchChunk): string {
+  return (
+    c.content ??
+    c.text ??
+    c.chunk_content ??
+    c.chunk?.content ??
+    c.chunk?.text ??
+    ''
+  ).trim();
 }
 
 /**
@@ -60,18 +74,19 @@ export async function retrieveManualContext(
   if (!res.ok) return '';
 
   const data = (await res.json().catch(() => null)) as
-    | { results?: SearchChunk[]; chunks?: SearchChunk[] }
+    | { results?: SearchChunk[]; chunks?: SearchChunk[]; data?: SearchChunk[] }
     | null;
-  const chunks = data?.results ?? data?.chunks ?? [];
+  const chunks = data?.results ?? data?.chunks ?? data?.data ?? [];
   const snippets = chunks
-    .map((c) => (c.content ?? c.text ?? '').trim())
+    .map(chunkText)
     .filter(Boolean)
     .slice(0, limit);
 
   if (snippets.length === 0) return '';
 
   return (
-    'Trechos relevantes do manual do equipamento (use-os como fonte e cite quando útil):\n' +
+    'TRECHOS DO MANUAL DO EQUIPAMENTO (fonte oficial — baseie a resposta nestes ' +
+    'trechos e, ao usá-los, sinalize com "📖 (manual)"):\n' +
     snippets.map((s, i) => `[${i + 1}] ${s}`).join('\n\n')
   );
 }
