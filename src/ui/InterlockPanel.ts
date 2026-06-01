@@ -6,6 +6,7 @@ import type { InterlockEvaluation } from '@/interlock/types.ts';
 
 export class InterlockPanel {
   readonly el: HTMLElement;
+  private readonly handle: HTMLButtonElement;
   private readonly alertsEl: HTMLDivElement;
   private readonly listEl: HTMLDivElement;
   private readonly summaryEl: HTMLSpanElement;
@@ -18,8 +19,20 @@ export class InterlockPanel {
 
   constructor() {
     this.el = document.createElement('aside');
-    this.el.className = 'interlock';
+    // Drawer aberto por padrão; em telas estreitas inicia fechado (ver open()).
+    this.el.className = 'interlock interlock--open';
     this.el.setAttribute('aria-label', 'Sistema de intertravamento');
+
+    // Aba (handle) para abrir/fechar a barra lateral.
+    this.handle = document.createElement('button');
+    this.handle.type = 'button';
+    this.handle.className = 'interlock__handle';
+    this.handle.setAttribute('aria-label', 'Mostrar/ocultar intertravamento');
+    this.handle.innerHTML = '<span class="interlock__handle-icon">⚙</span>';
+    this.handle.addEventListener('click', () => this.toggle());
+
+    const panel = document.createElement('div');
+    panel.className = 'interlock__panel';
 
     const title = document.createElement('div');
     title.className = 'interlock__title';
@@ -27,7 +40,13 @@ export class InterlockPanel {
     titleText.textContent = 'Intertravamento';
     this.summaryEl = document.createElement('span');
     this.summaryEl.className = 'interlock__summary';
-    title.append(titleText, this.summaryEl);
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'interlock__close';
+    closeBtn.setAttribute('aria-label', 'Fechar');
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => this.setOpen(false));
+    title.append(titleText, this.summaryEl, closeBtn);
 
     this.alertsEl = document.createElement('div');
     this.alertsEl.className = 'interlock__alerts';
@@ -37,7 +56,21 @@ export class InterlockPanel {
     this.listEl = document.createElement('div');
     this.listEl.className = 'interlock__list';
 
-    this.el.append(title, this.alertsEl, this.listEl);
+    panel.append(title, this.alertsEl, this.listEl);
+    this.el.append(this.handle, panel);
+
+    // Em telas estreitas começa fechado para não cobrir a simulação.
+    if (window.matchMedia('(max-width: 860px)').matches) this.setOpen(false);
+  }
+
+  private toggle(): void {
+    this.setOpen(!this.el.classList.contains('interlock--open'));
+  }
+
+  /** Abre/fecha a barra lateral. */
+  setOpen(open: boolean): void {
+    this.el.classList.toggle('interlock--open', open);
+    this.handle.setAttribute('aria-expanded', String(open));
   }
 
   /** Define os rótulos dos controles (ao trocar de equipamento). */

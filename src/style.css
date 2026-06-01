@@ -295,17 +295,9 @@ body {
     min-height: 300px;
   }
 
-  /* Intertravamento deixa de ser overlay e vira um cartão normal abaixo. */
-  .interlock {
-    position: static;
-    width: auto;
-    max-height: none;
-    margin: 0;
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    backdrop-filter: none;
-    background: var(--bg-elev);
+  /* Intertravamento: drawer cobre a área da simulação ao abrir (inicia fechado). */
+  .interlock__panel {
+    width: 86vw;
   }
 
   /* Chat com altura própria (não colapsa). */
@@ -410,20 +402,87 @@ body {
   height: 100%;
 }
 
-/* ---- Painel de intertravamento (overlay) ---- */
+/* ---- Painel de intertravamento (barra lateral retrátil) ---- */
 .interlock {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 270px;
-  max-height: calc(100% - 24px);
-  overflow-y: auto;
-  background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  backdrop-filter: blur(6px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 16;
+  display: flex;
+  align-items: stretch;
+  pointer-events: none; /* só o painel e a aba capturam eventos */
   font-size: 0.82rem;
+}
+
+/* Aba (handle) sempre visível na borda direita. */
+.interlock__handle {
+  pointer-events: auto;
+  align-self: center;
+  width: 26px;
+  height: 64px;
+  margin-right: -1px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  color: var(--text-muted);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: color 0.15s, background 0.15s;
+}
+
+.interlock__handle:hover {
+  color: var(--text);
+  background: var(--bg-elev-2);
+}
+
+.interlock__handle-icon {
+  font-size: 1.05rem;
+}
+
+/* Painel deslizante. */
+.interlock__panel {
+  pointer-events: auto;
+  width: 280px;
+  max-width: 84vw;
+  height: 100%;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--bg-elev) 96%, transparent);
+  border-left: 1px solid var(--border);
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+}
+
+.interlock--open .interlock__panel {
+  transform: translateX(0);
+}
+
+/* Quando aberto, a aba acompanha a borda do painel. */
+.interlock--open .interlock__handle {
+  background: var(--bg-elev-2);
+  color: var(--text);
+}
+
+.interlock__close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.interlock__close:hover {
+  color: var(--text);
 }
 
 .interlock__title {
