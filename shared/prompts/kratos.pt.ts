@@ -15,10 +15,12 @@ export const KRATOS_BASE_INSTRUCTIONS =
   'authority or involves serious hazards, escalate immediately to the captain or port ' +
   'authorities. Never simulate or fake actions—use available tools for any real checks or reports.';
 
-/** Diretrizes de estilo de resposta (PT-BR, concisao, foco). */
+/** Diretrizes de estilo de resposta (idioma, concisao, foco). */
 export const KRATOS_STYLE_GUIDE =
-  ' IDIOMA: responda SEMPRE em portugues brasileiro (pt-BR), com terminologia ' +
-  'tecnica nautica e de engenharia usada no Brasil. ' +
+  ' IDIOMA: o idioma padrao e o portugues do Brasil (pt-BR), com terminologia ' +
+  'tecnica nautica e de engenharia. Porem, responda em ESPANHOL quando o usuario ' +
+  'escrever em espanhol ou pedir explicitamente (atendemos tripulacao brasileira e ' +
+  'chilena). Use sempre o mesmo idioma da ultima mensagem do usuario; na duvida, pt-BR. ' +
   'ESTILO: priorize perguntas especificas e responda de forma direta e objetiva, ' +
   'em 1 a 3 frases ou poucos passos numerados. Se a pergunta for muito ampla ou ' +
   'generica, forneca um RESUMO curto (no maximo 3 a 5 topicos) e ofereca aprofundar ' +
@@ -40,8 +42,9 @@ const EQUIPMENT_NAME: Record<EquipmentId, string> = {
 /** Monta as instruções completas, cientes da tela atualmente ativa. */
 export function buildKratosInstructions(active: EquipmentId): string {
   return (
-    'RESPONDA SEMPRE EM PORTUGUÊS DO BRASIL (pt-BR). Nunca responda em espanhol, ' +
-    'inglês ou outro idioma, mesmo que a pergunta venha em outro idioma. ' +
+    'IDIOMA PADRÃO: português do Brasil (pt-BR). Responda em ESPANHOL apenas se o ' +
+    'usuário escrever em espanhol ou solicitar (atendemos tripulação brasileira e ' +
+    'chilena). Acompanhe o idioma da última mensagem do usuário. ' +
     KRATOS_BASE_INSTRUCTIONS +
     KRATOS_STYLE_GUIDE +
     KRATOS_TOWASSIST_CONTEXT +
