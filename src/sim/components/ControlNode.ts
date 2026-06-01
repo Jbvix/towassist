@@ -175,14 +175,36 @@ function drawGlyph(g: Graphics, control: PanelControl, value: number, accent: nu
         .stroke({ width: 3, color: COLORS.text });
       break;
     case 'gauge': {
-      g.circle(0, 0, 15).stroke({ width: 3, color: 0x2a3542 });
-      const a0 = Math.PI * 0.75;
-      const a1 = a0 + Math.PI * 1.5 * Math.max(0, Math.min(1, value));
-      g.arc(0, 0, 15, a0, a1).stroke({ width: 3, color: accent });
-      g.moveTo(0, 0).lineTo(Math.cos(a1) * 11, Math.sin(a1) * 11).stroke({
-        width: 2,
+      const R = 17;
+      const A0 = Math.PI * 0.75; // início (135°)
+      const SPAN = Math.PI * 1.5; // 270° de varredura
+      const v = Math.max(0, Math.min(1, value));
+
+      // Trilho de fundo.
+      g.arc(0, 0, R, A0, A0 + SPAN).stroke({ width: 3, color: 0x2a3542 });
+      // Zona de alerta (últimos 20% da escala) em vermelho translúcido.
+      g.arc(0, 0, R, A0 + SPAN * 0.8, A0 + SPAN).stroke({ width: 3, color: 0x8a3a30 });
+      // Arco preenchido até o valor.
+      g.arc(0, 0, R, A0, A0 + SPAN * v).stroke({
+        width: 3,
+        color: v >= 0.8 ? COLORS.danger : accent,
+      });
+      // Marcações (5 ticks: 0,25,50,75,100%).
+      for (let i = 0; i <= 4; i++) {
+        const a = A0 + SPAN * (i / 4);
+        const r0 = R - 3;
+        const r1 = R + 3;
+        g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0)
+          .lineTo(Math.cos(a) * r1, Math.sin(a) * r1)
+          .stroke({ width: 1.5, color: COLORS.muted });
+      }
+      // Ponteiro.
+      const an = A0 + SPAN * v;
+      g.moveTo(0, 0).lineTo(Math.cos(an) * (R - 4), Math.sin(an) * (R - 4)).stroke({
+        width: 2.5,
         color: COLORS.text,
       });
+      g.circle(0, 0, 2.5).fill(COLORS.text);
       break;
     }
     case 'indicator':
