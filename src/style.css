@@ -339,8 +339,13 @@ body {
     padding: 0.45rem 0.7rem;
   }
 
-  /* Guia de partida não ocupa demais no topo do canvas estreito. */
+  /* Guia de partida: faixa no topo do canvas, largura total (não centralizada). */
   .sim-panel__guide {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+    transform: none;
+    max-width: none;
     font-size: 0.78rem;
     padding: 6px 12px 6px 6px;
   }
@@ -486,6 +491,33 @@ body {
   display: flex;
   align-items: center;
   gap: 7px;
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+}
+
+.interlock__row--expandable .interlock__row-head {
+  cursor: pointer;
+}
+
+.interlock__row-head:disabled {
+  cursor: default;
+}
+
+.interlock__caret {
+  flex: 0 0 auto;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.interlock__row--open .interlock__caret {
+  transform: rotate(180deg);
 }
 
 .interlock__dot {
@@ -504,10 +536,10 @@ body {
 }
 
 .interlock__status {
-  margin-left: auto;
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  flex: 0 0 auto;
 }
 
 .interlock__row--ok .interlock__status {
