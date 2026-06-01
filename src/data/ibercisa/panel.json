@@ -2,14 +2,17 @@
   "controls": [
     { "id": "main_power", "kind": "selector", "label": "Energia Principal", "group": "energia", "hint": "Liga/desliga a alimentação do painel." },
     { "id": "hpu_start", "kind": "button", "label": "Partida HPU", "group": "energia", "hint": "Aciona a unidade de potência hidráulica (HPU)." },
+    { "id": "pilot_pump", "kind": "button", "label": "Bomba de Pilotagem", "group": "energia", "hint": "Bomba de pilotagem: fornece pressão de pilotagem para o comando das válvulas." },
     { "id": "emergency_stop", "kind": "button", "label": "Parada de Emergência", "group": "energia", "hint": "Botão de emergência — interrompe todos os movimentos." },
 
-    { "id": "winch_joystick", "kind": "lever", "label": "Joystick do Guincho", "group": "comando", "hint": "Comanda recolher/soltar e velocidade." },
-    { "id": "spooling", "kind": "selector", "label": "Enrolamento", "group": "comando", "hint": "Modo de enrolamento do cabo no tambor." },
+    { "id": "winch_joystick", "kind": "lever", "label": "Joystick do Guincho", "group": "comando", "hint": "Comanda colher (recolher) ou pagar (liberar) o cabo e a velocidade." },
     { "id": "band_brake", "kind": "selector", "label": "Freio de Cinta", "group": "comando", "hint": "Aplica/libera o freio de cinta." },
+    { "id": "quick_release", "kind": "button", "label": "Quick Release", "group": "comando", "hint": "Liberação rápida de emergência: paga o cabo imediatamente, abrindo o freio sob controle." },
 
     { "id": "load_cell", "kind": "gauge", "label": "Célula de Carga", "group": "instrumentacao", "hint": "Carga medida na linha." },
     { "id": "hyd_pressure", "kind": "gauge", "label": "Pressão Hidráulica", "group": "instrumentacao", "hint": "Pressão do sistema hidráulico." },
+    { "id": "pickup_sensor", "kind": "indicator", "label": "Sensor Pickup", "group": "instrumentacao", "hint": "Sensor pickup: detecta a rotação/velocidade do tambor (sinal de movimento)." },
+    { "id": "coupling_sensor", "kind": "indicator", "label": "Sensor de Acoplamento", "group": "instrumentacao", "hint": "Confirma o acoplamento do acionamento ao tambor." },
     { "id": "status_ready", "kind": "indicator", "label": "Pronto p/ Operar", "group": "instrumentacao", "hint": "Acende quando o intertravamento libera a operação." }
   ]
 }

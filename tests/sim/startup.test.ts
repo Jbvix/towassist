@@ -37,10 +37,17 @@ describe('Partida assistida — KRAAIJVELD', () => {
 });
 
 describe('Partida assistida — IBERCISA', () => {
-  it('sequência energia → HPU → joystick', () => {
+  it('sequência energia → HPU → pilotagem → joystick', () => {
     expect(nextStartupStep('ibercisa', {}).next?.controlId).toBe('main_power');
     expect(nextStartupStep('ibercisa', { main_power: 1 }).next?.controlId).toBe('hpu_start');
-    const pronto = nextStartupStep('ibercisa', { main_power: 1, hpu_start: 1 });
+    expect(nextStartupStep('ibercisa', { main_power: 1, hpu_start: 1 }).next?.controlId).toBe(
+      'pilot_pump',
+    );
+    const pronto = nextStartupStep('ibercisa', {
+      main_power: 1,
+      hpu_start: 1,
+      pilot_pump: 1,
+    });
     expect(pronto.next?.controlId).toBe('winch_joystick');
   });
 });

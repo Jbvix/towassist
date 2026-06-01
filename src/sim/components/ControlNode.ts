@@ -186,11 +186,19 @@ function drawGlyph(g: Graphics, control: PanelControl, value: number, accent: nu
       g.circle(tipX, tipY, 7).fill(COLORS.text);
       break;
     }
-    case 'button':
-      g.circle(0, 0, 13)
-        .fill(control.id === 'emergency_stop' ? COLORS.danger : on ? accent : 0x35424f)
-        .stroke({ width: 2, color: on ? COLORS.text : COLORS.border });
+    case 'button': {
+      const amber = 0xd6a23a;
+      const fill =
+        control.id === 'emergency_stop'
+          ? COLORS.danger
+          : control.id === 'quick_release'
+            ? amber
+            : on
+              ? accent
+              : 0x35424f;
+      g.circle(0, 0, 13).fill(fill).stroke({ width: 2, color: on ? COLORS.text : COLORS.border });
       break;
+    }
     case 'selector':
       g.circle(0, 0, 13).stroke({ width: 3, color: on ? accent : COLORS.border });
       g.moveTo(0, 0)
