@@ -275,15 +275,42 @@ body {
 }
 
 @media (max-width: 860px) {
+  /* No mobile o corpo rola verticalmente: simulação → intertravamento → chat. */
   .app-body {
     grid-template-columns: 1fr;
-    /* Simulação em cima (maior), chat embaixo (rolável). */
-    grid-template-rows: 55fr 45fr;
+    grid-template-rows: none;
+    display: block;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .sim-panel {
     border-right: 0;
     border-bottom: 1px solid var(--border);
+  }
+
+  /* Altura útil para a simulação caber sem ficar espremida. */
+  .sim-panel__canvas {
+    height: 56vh;
+    min-height: 300px;
+  }
+
+  /* Intertravamento deixa de ser overlay e vira um cartão normal abaixo. */
+  .interlock {
+    position: static;
+    width: auto;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    backdrop-filter: none;
+    background: var(--bg-elev);
+  }
+
+  /* Chat com altura própria (não colapsa). */
+  .chat {
+    min-height: 60vh;
   }
 
   /* Cabeçalho compacto: não quebra o título em várias linhas. */
@@ -302,21 +329,20 @@ body {
     font-size: 0.7rem;
   }
 
-  /* Intertravamento como faixa inferior (não cobre o painel). */
-  .interlock {
-    position: absolute;
-    top: auto;
-    bottom: 8px;
-    left: 8px;
-    right: 8px;
-    width: auto;
-    max-height: 42%;
-    font-size: 0.78rem;
+  .app-header__right {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .sim-panel__meta {
     font-size: 0.75rem;
     padding: 0.45rem 0.7rem;
+  }
+
+  /* Guia de partida não ocupa demais no topo do canvas estreito. */
+  .sim-panel__guide {
+    font-size: 0.78rem;
+    padding: 6px 12px 6px 6px;
   }
 }
 
