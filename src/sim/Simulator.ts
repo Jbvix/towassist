@@ -7,6 +7,7 @@ import type { EquipmentDefinition, EquipmentId, PanelControl } from '@shared/typ
 import { PanelState, type PanelValues } from '@/sim/state.ts';
 import { ControlNode, NODE_W, NODE_H, type ControlIntent } from '@/sim/components/ControlNode.ts';
 import { DrumView } from '@/sim/components/DrumView.ts';
+import { nextStartupStep, type StartupResult } from '@/sim/startup.ts';
 import { InterlockEngine } from '@/interlock/InterlockEngine.ts';
 import { getRuleset } from '@/interlock/rules/index.ts';
 import type { InterlockEvaluation } from '@/interlock/types.ts';
@@ -58,6 +59,8 @@ export class Simulator {
   /** Notificado ao passar o mouse sobre um controle (tooltip). null = saiu. */
   onHover: ((info: { label: string; hint: string; x: number; y: number } | null) => void) | null =
     null;
+  /** Notificado com o próximo passo da partida assistida. */
+  onStartup: ((result: StartupResult) => void) | null = null;
 
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
@@ -109,6 +112,7 @@ export class Simulator {
     this.state.subscribe((values) => {
       this.applyValues(values);
       this.applyInterlock(values);
+      this.updateStartup(def.meta.id as EquipmentId, values);
       this.onStateChange?.(values);
     });
 
@@ -268,12 +272,23 @@ export class Simulator {
     this.onInterlock?.(evalResult);
   }
 
+  /** Calcula o próximo passo da partida e destaca o controle-alvo. */
+  private updateStartup(equipment: EquipmentId, values: PanelValues): void {
+    const result = nextStartupStep(equipment, values);
+    const targetId = result.next?.controlId ?? null;
+    for (const [id, node] of this.nodes) {
+      node.setHighlight(id === targetId);
+    }
+    this.onStartup?.(result);
+  }
+
   private update(): void {
     const now = performance.now();
     const dt = (now - this.lastTime) / 1000;
     this.lastTime = now;
     this.state?.tick(dt);
     this.drum?.tick(dt);
+    for (const node of this.nodes.values()) node.tickHighlight(dt);
   }
 
   private layout(): void {

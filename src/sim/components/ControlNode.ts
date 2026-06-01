@@ -32,18 +32,22 @@ export class ControlNode {
   readonly container = new Container();
   readonly control: PanelControl;
 
+  private readonly ring = new Graphics();
   private readonly box = new Graphics();
   private readonly glyph = new Graphics();
   private readonly valueText: Text;
   private accent: number;
   private value = 0;
   private enabled = true;
+  private highlighted = false;
+  private pulse = 0;
 
   constructor(control: PanelControl, accent: number) {
     this.control = control;
     this.accent = accent;
 
-    this.container.addChild(this.box, this.glyph);
+    // ring fica atrás da caixa (destaque da partida assistida).
+    this.container.addChild(this.ring, this.box, this.glyph);
 
     const label = new Text({
       text: control.label,
@@ -106,6 +110,25 @@ export class ControlNode {
     this.enabled = enabled;
     this.container.alpha = enabled ? 1 : 0.45;
     this.redraw();
+  }
+
+  /** Marca como próximo passo da partida assistida (anel pulsante). */
+  setHighlight(on: boolean): void {
+    if (this.highlighted === on) return;
+    this.highlighted = on;
+    if (!on) this.ring.clear();
+  }
+
+  /** Anima o anel de destaque (chamado pelo ticker). */
+  tickHighlight(deltaSec: number): void {
+    if (!this.highlighted) return;
+    this.pulse += deltaSec * 3;
+    const a = 0.4 + 0.4 * (0.5 + 0.5 * Math.sin(this.pulse));
+    const pad = 4 + 2 * (0.5 + 0.5 * Math.sin(this.pulse));
+    this.ring
+      .clear()
+      .roundRect(-W / 2 - pad, -H / 2 - pad, W + pad * 2, H + pad * 2, 16)
+      .stroke({ width: 2.5, color: this.accent, alpha: a });
   }
 
   /** Pisca em vermelho ao tentar acionar um comando bloqueado. */

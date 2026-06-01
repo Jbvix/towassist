@@ -13,6 +13,7 @@ export class SimPanel {
   private readonly canvasHost: HTMLDivElement;
   private readonly toastEl: HTMLDivElement;
   private readonly tooltipEl: HTMLDivElement;
+  private readonly guideEl: HTMLDivElement;
   private readonly sim = new Simulator();
   private readonly interlockPanel = new InterlockPanel();
   private ready = false;
@@ -39,7 +40,11 @@ export class SimPanel {
     this.tooltipEl.className = 'sim-panel__tooltip';
     this.tooltipEl.hidden = true;
 
-    this.canvasHost.append(this.interlockPanel.el, this.toastEl, this.tooltipEl);
+    this.guideEl = document.createElement('div');
+    this.guideEl.className = 'sim-panel__guide';
+    this.guideEl.hidden = true;
+
+    this.canvasHost.append(this.interlockPanel.el, this.toastEl, this.tooltipEl, this.guideEl);
     this.el.append(this.metaEl, this.canvasHost);
 
     // Repassa o estado do painel ao store (consumido pelo chat do KRATOS)
@@ -55,6 +60,22 @@ export class SimPanel {
     this.sim.onBlocked = (_id, label, reasons) => this.showBlockedToast(label, reasons);
     // Tooltip ao passar o mouse sobre um controle.
     this.sim.onHover = (info) => this.showTooltip(info);
+    // Partida assistida: mostra o próximo passo.
+    this.sim.onStartup = (result) => {
+      if (!result.next) {
+        this.guideEl.innerHTML =
+          '<span class="sim-panel__guide-badge">✓</span>' +
+          '<span>Sequência de partida concluída — sistema operacional.</span>';
+        this.guideEl.classList.add('sim-panel__guide--done');
+      } else {
+        const passo = result.index > 0 ? `Passo ${result.index}/${result.total} · ` : '';
+        this.guideEl.classList.remove('sim-panel__guide--done');
+        this.guideEl.innerHTML =
+          '<span class="sim-panel__guide-badge">KRATOS</span>' +
+          `<span>${passo}${result.next.instruction}</span>`;
+      }
+      this.guideEl.hidden = false;
+    };
   }
 
   private showTooltip(
