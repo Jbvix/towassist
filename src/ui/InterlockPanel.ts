@@ -8,6 +8,7 @@ export class InterlockPanel {
   readonly el: HTMLElement;
   private readonly alertsEl: HTMLDivElement;
   private readonly listEl: HTMLDivElement;
+  private readonly summaryEl: HTMLSpanElement;
   /** Rótulos legíveis dos controles (id -> label). */
   private labels: Record<string, string> = {};
 
@@ -18,11 +19,14 @@ export class InterlockPanel {
 
     const title = document.createElement('div');
     title.className = 'interlock__title';
-    title.textContent = 'Intertravamento';
+    const titleText = document.createElement('span');
+    titleText.textContent = 'Intertravamento';
+    this.summaryEl = document.createElement('span');
+    this.summaryEl.className = 'interlock__summary';
+    title.append(titleText, this.summaryEl);
 
     this.alertsEl = document.createElement('div');
     this.alertsEl.className = 'interlock__alerts';
-    // Alertas (ex.: parada de emergência) são anunciados imediatamente.
     this.alertsEl.setAttribute('role', 'alert');
     this.alertsEl.setAttribute('aria-live', 'assertive');
 
@@ -39,6 +43,13 @@ export class InterlockPanel {
 
   /** Renderiza a avaliação atual. */
   update(evaluation: InterlockEvaluation): void {
+    const controls = Object.values(evaluation.controls);
+    const liberados = controls.filter((c) => c.allowed).length;
+    const total = controls.length;
+
+    // Resumo no cabeçalho.
+    this.summaryEl.textContent = `${liberados}/${total} liberados`;
+
     // Alertas globais.
     this.alertsEl.innerHTML = '';
     for (const alert of evaluation.alerts) {
@@ -48,9 +59,11 @@ export class InterlockPanel {
       this.alertsEl.appendChild(a);
     }
 
-    // Lista de controles governados por regras.
+    // Ordena: bloqueados primeiro (mais acionáveis), depois liberados.
+    const ordered = [...controls].sort((a, b) => Number(a.allowed) - Number(b.allowed));
+
     this.listEl.innerHTML = '';
-    for (const ev of Object.values(evaluation.controls)) {
+    for (const ev of ordered) {
       const row = document.createElement('div');
       row.className = `interlock__row interlock__row--${ev.allowed ? 'ok' : 'blocked'}`;
 
@@ -59,6 +72,7 @@ export class InterlockPanel {
       const dot = document.createElement('span');
       dot.className = 'interlock__dot';
       const name = document.createElement('span');
+      name.className = 'interlock__name';
       name.textContent = this.labels[ev.controlId] ?? ev.controlId;
       const status = document.createElement('span');
       status.className = 'interlock__status';
