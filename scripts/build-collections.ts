@@ -17,7 +17,6 @@
 //   XAI_COLLECTION_IBERCISA=...
 
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
 
 const MGMT = 'https://management-api.x.ai/v1';
 
@@ -25,18 +24,22 @@ interface ManualSpec {
   key: 'KRAAIJVELD' | 'IBERCISA';
   collectionName: string;
   pdfPath: string;
+  /** Nome ASCII enviado no upload (evita 500 'cf-region' por chars especiais). */
+  uploadName: string;
 }
 
 const MANUALS: ManualSpec[] = [
   {
     key: 'KRAAIJVELD',
-    collectionName: 'TowAssist — KRAAIJVELD (2500P)',
+    collectionName: 'TowAssist KRAAIJVELD 2500P',
     pdfPath: 'docs/manuais/kraaijveld/Users Manual - 2500P.pdf',
+    uploadName: 'kraaijveld-2500P.pdf',
   },
   {
     key: 'IBERCISA',
-    collectionName: 'TowAssist — IBERCISA (Arcimbaldo)',
+    collectionName: 'TowAssist IBERCISA Arcimbaldo',
     pdfPath: 'docs/manuais/ibercisa/MR-MAN-H 70 100-64 - Instruction & Maintenance Book - Arcimbaldo.pdf',
+    uploadName: 'ibercisa-MR-MAN-H-70-100-64.pdf',
   },
 ];
 
@@ -84,20 +87,35 @@ async function createCollection(key: string, name: string): Promise<string> {
   return id;
 }
 
-async function uploadDocument(key: string, collectionId: string, pdfPath: string): Promise<void> {
+async function uploadDocument(
+  key: string,
+  collectionId: string,
+  pdfPath: string,
+  uploadName: string,
+): Promise<void> {
   const bytes = await readFile(pdfPath);
-  const form = new FormData();
-  const name = basename(pdfPath);
-  form.append('name', name);
-  form.append('content_type', 'application/pdf');
-  form.append('data', new Blob([bytes], { type: 'application/pdf' }), name);
 
-  const res = await fetch(`${MGMT}/collections/${collectionId}/documents`, {
-    method: 'POST',
-    headers: auth(key),
-    body: form,
-  });
-  if (!res.ok) throw new Error(`uploadDocument ${res.status}: ${await res.text()}`);
+  // Nome ASCII simples no upload. Nomes com espaços/'&'/acentos causavam
+  // 500 ('cf-region contains non-printable ASCII') na camada do servidor.
+  let lastErr = '';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const form = new FormData();
+    form.append('name', uploadName);
+    form.append('content_type', 'application/pdf');
+    form.append('data', new Blob([bytes], { type: 'application/pdf' }), uploadName);
+
+    const res = await fetch(`${MGMT}/collections/${collectionId}/documents`, {
+      method: 'POST',
+      headers: auth(key),
+      body: form,
+    });
+    if (res.ok) return;
+
+    lastErr = `${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`;
+    if (res.status < 500 && res.status !== 429) break; // erro não-transitório
+    await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+  }
+  throw new Error(`uploadDocument ${lastErr}`);
 }
 
 /** Lê o status de processamento dos documentos da collection. */
@@ -128,8 +146,8 @@ async function main(): Promise<void> {
         console.log(`criada (${id})`);
       }
 
-      process.stdout.write(`[${m.key}] enviando ${basename(m.pdfPath)}… `);
-      await uploadDocument(key, id, m.pdfPath);
+      process.stdout.write(`[${m.key}] enviando ${m.uploadName}… `);
+      await uploadDocument(key, id, m.pdfPath, m.uploadName);
       console.log('upload ok');
 
       const status = await documentsStatus(key, id);
