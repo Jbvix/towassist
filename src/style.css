@@ -289,41 +289,22 @@ body {
     border-bottom: 1px solid var(--border);
   }
 
-  /* No mobile o stage empilha: canvas em cima, trilha de sinaleiros embaixo. */
-  .sim-panel__stage {
-    flex-direction: column;
-  }
-
+  /* Altura útil da simulação no mobile (abas 1 e 2). */
   .sim-panel__canvas {
-    height: 50vh;
-    min-height: 260px;
+    height: 56vh;
+    min-height: 280px;
   }
 
-  /* Trilha vira faixa horizontal de sinaleiros, no fluxo (abaixo do canvas). */
-  .interlock {
-    flex: 0 0 auto;
+  /* Abas roláveis horizontalmente se faltar largura. */
+  .sim-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .interlock__rail {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    border-left: 0;
-    border-top: 1px solid var(--border);
-  }
-
-  .interlock__signal {
-    flex-direction: row;
-    gap: 6px;
-    padding: 6px 12px;
-  }
-
-  /* Painel completo abre como sobreposição fixa na tela. */
-  .interlock__panel {
-    position: fixed;
-    width: 86vw;
-    max-width: 360px;
-    z-index: 40;
+  .sim-tabs__btn {
+    white-space: nowrap;
+    font-size: 0.78rem;
+    padding: 0.5rem 0.7rem;
   }
 
   /* Chat com altura própria (não colapsa). */
@@ -411,7 +392,52 @@ body {
   }
 }
 
-/* "Stage": canvas + trilha de intertravamento lado a lado. */
+/* Abas da simulação (Energia · Operação · Intertravamento). */
+.sim-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.sim-tabs__btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.sim-tabs__btn:hover {
+  color: var(--text);
+}
+
+.sim-tabs__btn--active {
+  color: var(--text);
+  background: var(--bg-elev-2);
+  border-color: var(--border);
+}
+
+.sim-tabs__badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  color: #ffd9d2;
+}
+
+/* Stage: contêiner da aba ativa (canvas OU lista de intertravamento). */
 .sim-panel__stage {
   position: relative;
   flex: 1;
@@ -433,126 +459,13 @@ body {
   height: 100%;
 }
 
-/* ---- Intertravamento: trilha (no fluxo) + painel deslizante (overlay) ---- */
+/* ---- Intertravamento: conteúdo da aba 3 (lista rolável, preenche o stage) ---- */
 .interlock {
-  flex: 0 0 auto;
-  align-self: stretch;
-  display: flex;
-  font-size: 0.82rem;
-}
-
-/* Trilha SEMPRE visível: coluna de sinaleiros à direita do canvas. */
-.interlock__rail {
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 6px;
-  background: var(--bg-elev);
-  border-left: 1px solid var(--border);
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
-}
-
-.interlock__signal {
-  appearance: none;
-  border: 1px solid var(--border);
-  background: var(--bg-elev-2);
-  border-radius: 8px;
-  padding: 5px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  cursor: pointer;
-  min-width: 42px;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.interlock__signal:hover {
-  background: var(--bg-elev);
-  border-color: var(--accent);
-}
-
-.interlock__signal-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-}
-
-.interlock__signal-tag {
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  color: var(--text-muted);
-}
-
-.interlock__signal--ok .interlock__signal-dot {
-  background: #3fb37a;
-}
-
-.interlock__signal--blocked .interlock__signal-dot {
-  background: var(--danger);
-}
-
-.interlock__signal--blocked {
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
-}
-
-.interlock__signal--alert {
-  border-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 20%, transparent);
-}
-
-.interlock__signal--alert .interlock__signal-dot {
-  background: var(--danger);
-  animation: ready-glow 1.2s ease-in-out infinite;
-}
-
-.interlock__signal--alert .interlock__signal-tag {
-  color: #ffd9d2;
-}
-
-/* Painel completo: desliza sobre o stage quando um sinaleiro é tocado.
-   Absoluto em relação ao .sim-panel__stage (não cria vão no fluxo). */
-.interlock__panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 18;
-  width: 300px;
-  max-width: 86%;
-  overflow-y: auto;
-  background: color-mix(in srgb, var(--bg-elev) 98%, transparent);
-  border-left: 1px solid var(--border);
-  padding: 12px 14px;
-  backdrop-filter: blur(8px);
-  transform: translateX(110%);
-  transition: transform 0.28s ease;
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.45);
-  visibility: hidden;
-}
-
-.interlock--open .interlock__panel {
-  transform: translateX(0);
-  visibility: visible;
-}
-
-.interlock__close {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 1.2rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 2px;
-}
-
-.interlock__close:hover {
-  color: var(--text);
+  padding: 14px 16px;
+  font-size: 0.85rem;
 }
 
 .interlock__title {

@@ -41,6 +41,8 @@ export class Simulator {
   private resizeObserver: ResizeObserver | null = null;
   private initialized = false;
   private lastTime = 0;
+  /** Aba ativa da simulação: quais grupos mostrar. */
+  private activeTab: 'energia' | 'operacao' = 'energia';
   /** Visualização do tambor/cabo (overlay, canto superior esquerdo). */
   private drum: DrumView | null = null;
   /** Arraste em curso de uma alavanca (id + se houve movimento). */
@@ -306,7 +308,15 @@ export class Simulator {
     const SECTION_GAP = 26;
     const OUTER = 36;
 
-    const groups = this.groupControls(this.currentDef.controls);
+    // Filtra os grupos conforme a aba ativa.
+    const tabGroups: Record<string, string[]> = {
+      energia: ['energia'],
+      operacao: ['comando', 'instrumentacao'],
+    };
+    const allowed = new Set(tabGroups[this.activeTab]);
+    const groups = this.groupControls(this.currentDef.controls).filter(([g]) =>
+      allowed.has(g),
+    );
     const portrait = height > width * 1.15;
     const maxCols = portrait ? 2 : 3;
 
@@ -379,14 +389,20 @@ export class Simulator {
       h: halfH * 2,
     }));
 
-    // Tambor: overlay no canto superior esquerdo. Sempre visível; a escala
-    // acompanha o painel para não invadir os controles.
+    // Tambor: visível apenas na aba "Operação"; posicionado no topo do painel.
     if (this.drum) {
-      this.drum.container.visible = true;
-      const margin = 70 * scale;
+      this.drum.container.visible = this.activeTab === 'operacao';
+      const margin = 60 * scale;
       this.drum.container.scale.set(scale);
       this.drum.container.position.set(margin, margin);
     }
+  }
+
+  /** Troca a aba ativa da simulação e re-renderiza. */
+  setTab(tab: 'energia' | 'operacao'): void {
+    if (this.activeTab === tab) return;
+    this.activeTab = tab;
+    this.layout();
   }
 
   /** Agrupa os controles por `group`, na ordem canônica; sem grupo vai por último. */

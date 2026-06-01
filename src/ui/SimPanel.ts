@@ -7,15 +7,23 @@ import type { PanelStore } from '@/app/PanelStore.ts';
 import { Simulator } from '@/sim/Simulator.ts';
 import { InterlockPanel } from '@/ui/InterlockPanel.ts';
 
+type SimTab = 'energia' | 'operacao' | 'intertravamento';
+
 export class SimPanel {
   readonly el: HTMLElement;
   private readonly metaEl: HTMLDivElement;
+  private readonly tabsEl: HTMLDivElement;
   private readonly canvasHost: HTMLDivElement;
   private readonly toastEl: HTMLDivElement;
   private readonly tooltipEl: HTMLDivElement;
   private readonly guideEl: HTMLDivElement;
+  private readonly stageEl: HTMLDivElement;
   private readonly sim = new Simulator();
   private readonly interlockPanel = new InterlockPanel();
+  private readonly tabButtons = new Map<SimTab, HTMLButtonElement>();
+  private activeTab: SimTab = 'energia';
+  /** Resumo do intertravamento, mostrado no rótulo da aba. */
+  private interlockSummary = '';
   private ready = false;
   private toastTimer: number | null = null;
 
@@ -28,6 +36,26 @@ export class SimPanel {
 
     this.metaEl = document.createElement('div');
     this.metaEl.className = 'sim-panel__meta';
+
+    // Abas: Energia · Operação · Intertravamento.
+    this.tabsEl = document.createElement('div');
+    this.tabsEl.className = 'sim-tabs';
+    this.tabsEl.setAttribute('role', 'tablist');
+    const tabDefs: Array<[SimTab, string]> = [
+      ['energia', '1 · Energia'],
+      ['operacao', '2 · Operação'],
+      ['intertravamento', '3 · Intertravamento'],
+    ];
+    for (const [tab, label] of tabDefs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sim-tabs__btn';
+      btn.setAttribute('role', 'tab');
+      btn.textContent = label;
+      btn.addEventListener('click', () => this.setTab(tab));
+      this.tabButtons.set(tab, btn);
+      this.tabsEl.appendChild(btn);
+    }
 
     this.canvasHost = document.createElement('div');
     this.canvasHost.className = 'sim-panel__canvas';
@@ -47,14 +75,13 @@ export class SimPanel {
     // Overlays transitórios que ficam SOBRE o canvas (toast, tooltip).
     this.canvasHost.append(this.toastEl, this.tooltipEl);
 
-    // "Stage": canvas + trilha de intertravamento lado a lado (flex), sem
-    // posicionamento absoluto que cause vãos/sobreposição.
-    const stage = document.createElement('div');
-    stage.className = 'sim-panel__stage';
-    stage.append(this.canvasHost, this.interlockPanel.el);
+    // Stage: alterna entre o canvas (abas 1 e 2) e o intertravamento (aba 3).
+    this.stageEl = document.createElement('div');
+    this.stageEl.className = 'sim-panel__stage';
+    this.stageEl.append(this.canvasHost, this.interlockPanel.el);
 
-    // Ordem em fluxo: meta → guia → stage (canvas | intertravamento).
-    this.el.append(this.metaEl, this.guideEl, stage);
+    // Ordem em fluxo: meta → abas → guia → stage.
+    this.el.append(this.metaEl, this.tabsEl, this.guideEl, this.stageEl);
 
     // Repassa o estado do painel ao store (consumido pelo chat do KRATOS)
     // e destaca visualmente quando o sistema fica "Pronto p/ Operar".
@@ -63,8 +90,15 @@ export class SimPanel {
       const ready = (values['status_ready'] ?? 0) >= 0.5;
       this.el.classList.toggle('sim-panel--ready', ready);
     };
-    // Atualiza o painel de intertravamento a cada avaliação.
-    this.sim.onInterlock = (evaluation) => this.interlockPanel.update(evaluation);
+    // Atualiza o painel de intertravamento e o resumo na aba.
+    this.sim.onInterlock = (evaluation) => {
+      this.interlockPanel.update(evaluation);
+      const controls = Object.values(evaluation.controls);
+      const ok = controls.filter((c) => c.allowed).length;
+      const blocked = controls.length - ok;
+      this.interlockSummary = blocked > 0 ? `${blocked}!` : '✓';
+      this.refreshTabLabels();
+    };
     // Mostra o motivo quando um comando é bloqueado.
     this.sim.onBlocked = (_id, label, reasons) => this.showBlockedToast(label, reasons);
     // Tooltip ao passar o mouse sobre um controle.
@@ -85,6 +119,40 @@ export class SimPanel {
       }
       this.guideEl.hidden = false;
     };
+
+    this.applyTab();
+  }
+
+  /** Troca a aba ativa e atualiza a simulação/visibilidade. */
+  setTab(tab: SimTab): void {
+    if (this.activeTab === tab) return;
+    this.activeTab = tab;
+    this.applyTab();
+  }
+
+  private applyTab(): void {
+    const tab = this.activeTab;
+    // Botões.
+    for (const [t, btn] of this.tabButtons) {
+      btn.setAttribute('aria-selected', String(t === tab));
+      btn.classList.toggle('sim-tabs__btn--active', t === tab);
+    }
+    // Conteúdo: canvas (energia/operação) vs. lista de intertravamento.
+    const showCanvas = tab === 'energia' || tab === 'operacao';
+    this.canvasHost.style.display = showCanvas ? '' : 'none';
+    this.interlockPanel.el.style.display = tab === 'intertravamento' ? '' : 'none';
+    this.guideEl.style.display = showCanvas ? '' : 'none';
+    this.el.classList.toggle('sim-panel--interlock', tab === 'intertravamento');
+
+    if (showCanvas) this.sim.setTab(tab);
+    this.refreshTabLabels();
+  }
+
+  private refreshTabLabels(): void {
+    const interBtn = this.tabButtons.get('intertravamento');
+    if (interBtn && this.interlockSummary) {
+      interBtn.innerHTML = `3 · Intertravamento <span class="sim-tabs__badge">${this.interlockSummary}</span>`;
+    }
   }
 
   private showTooltip(
