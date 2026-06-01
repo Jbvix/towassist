@@ -11,6 +11,10 @@ export class InterlockPanel {
   private readonly summaryEl: HTMLSpanElement;
   /** Rótulos legíveis dos controles (id -> label). */
   private labels: Record<string, string> = {};
+  /** Controles cujas condições estão expandidas (por id). */
+  private readonly expanded = new Set<string>();
+  /** Última avaliação recebida (para re-renderizar ao expandir/colapsar). */
+  private lastEvaluation: InterlockEvaluation | null = null;
 
   constructor() {
     this.el = document.createElement('aside');
@@ -43,6 +47,7 @@ export class InterlockPanel {
 
   /** Renderiza a avaliação atual. */
   update(evaluation: InterlockEvaluation): void {
+    this.lastEvaluation = evaluation;
     const controls = Object.values(evaluation.controls);
     const liberados = controls.filter((c) => c.allowed).length;
     const total = controls.length;
@@ -64,10 +69,16 @@ export class InterlockPanel {
 
     this.listEl.innerHTML = '';
     for (const ev of ordered) {
+      const hasReasons = !ev.allowed && ev.blockedBy.length > 0;
+      const isOpen = this.expanded.has(ev.controlId);
+
       const row = document.createElement('div');
       row.className = `interlock__row interlock__row--${ev.allowed ? 'ok' : 'blocked'}`;
+      if (hasReasons) row.classList.add('interlock__row--expandable');
+      if (isOpen) row.classList.add('interlock__row--open');
 
-      const head = document.createElement('div');
+      const head = document.createElement('button');
+      head.type = 'button';
       head.className = 'interlock__row-head';
       const dot = document.createElement('span');
       dot.className = 'interlock__dot';
@@ -78,9 +89,26 @@ export class InterlockPanel {
       status.className = 'interlock__status';
       status.textContent = ev.allowed ? 'LIBERADO' : 'BLOQUEADO';
       head.append(dot, name, status);
+
+      if (hasReasons) {
+        const caret = document.createElement('span');
+        caret.className = 'interlock__caret';
+        caret.setAttribute('aria-hidden', 'true');
+        caret.textContent = '▾';
+        head.appendChild(caret);
+        head.setAttribute('aria-expanded', String(isOpen));
+        head.title = isOpen ? 'Ocultar condições' : 'Ver condições pendentes';
+        head.addEventListener('click', () => {
+          if (this.expanded.has(ev.controlId)) this.expanded.delete(ev.controlId);
+          else this.expanded.add(ev.controlId);
+          this.update(this.lastEvaluation!);
+        });
+      } else {
+        head.disabled = true;
+      }
       row.appendChild(head);
 
-      if (!ev.allowed && ev.blockedBy.length > 0) {
+      if (hasReasons && isOpen) {
         const reasons = document.createElement('ul');
         reasons.className = 'interlock__reasons';
         for (const r of ev.blockedBy) {
