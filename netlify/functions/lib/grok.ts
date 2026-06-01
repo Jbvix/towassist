@@ -35,20 +35,44 @@ export async function grokChat(messages: GrokChatMessage[]): Promise<string> {
     .filter((m) => m.role !== 'system')
     .map((m) => ({ role: m.role, content: m.content }));
 
-  const res = await fetch(`${XAI_BASE}/responses`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      instructions: instructions || undefined,
-      input,
-    }),
+  const body = JSON.stringify({
+    model,
+    instructions: instructions || undefined,
+    input,
   });
 
+  // Em caso de 429 (capacidade/limite) ou 5xx, tenta novamente com backoff.
+  const MAX_TRIES = 3;
+  let res!: Response;
+  for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+    res = await fetch(`${XAI_BASE}/responses`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body,
+    });
+
+    if (res.ok) break;
+    if (res.status !== 429 && res.status < 500) break; // erro não-transitório
+    if (attempt === MAX_TRIES - 1) break;
+
+    // Respeita Retry-After se enviado; senão backoff 1s, 2s.
+    const retryAfter = Number(res.headers.get('retry-after'));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000
+      : 1000 * 2 ** attempt;
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+
   if (!res.ok) {
+    if (res.status === 429) {
+      throw new Error(
+        'O assistente está com alta demanda no momento (limite da API atingido). ' +
+          'Aguarde alguns instantes e tente novamente.',
+      );
+    }
     const detail = await res.text().catch(() => '');
     throw new Error(`xAI Grok respondeu ${res.status}: ${detail.slice(0, 300)}`);
   }

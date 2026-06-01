@@ -40,6 +40,8 @@ const EQUIPMENT_NAME: Record<EquipmentId, string> = {
 /** Monta as instruções completas, cientes da tela atualmente ativa. */
 export function buildKratosInstructions(active: EquipmentId): string {
   return (
+    'RESPONDA SEMPRE EM PORTUGUÊS DO BRASIL (pt-BR). Nunca responda em espanhol, ' +
+    'inglês ou outro idioma, mesmo que a pergunta venha em outro idioma. ' +
     KRATOS_BASE_INSTRUCTIONS +
     KRATOS_STYLE_GUIDE +
     KRATOS_TOWASSIST_CONTEXT +
