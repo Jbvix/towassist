@@ -13,9 +13,11 @@ export interface PanelControl {
   kind: ControlKind;
   /** Rótulo exibido ao usuário. */
   label: string;
-  /** Posição relativa no painel (0..1), para layout independente de resolução. */
-  x: number;
-  y: number;
+  /** Grupo funcional para organização visual (ex.: "energia", "comando", "instrumentacao"). */
+  group?: string;
+  /** Posição relativa no painel (0..1) — usada apenas se não houver grupos. */
+  x?: number;
+  y?: number;
   /** Descrição/ajuda (origem: manual). Opcional. */
   hint?: string;
 }
