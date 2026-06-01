@@ -11,11 +11,11 @@ export type PanelValues = Record<string, ControlValue>;
 
 type Listener = (values: PanelValues) => void;
 
-/** Rótulos legíveis para o valor de uma alavanca. */
+/** Rótulos legíveis para o valor de uma alavanca (terminologia de manobra). */
 export const LEVER_LABELS: Record<number, string> = {
-  [-1]: 'SOLTAR',
+  [-1]: 'PAGAR CABO',
   [0]: 'NEUTRO',
-  [1]: 'RECOLHER',
+  [1]: 'COLHER CABO',
 };
 
 export class PanelState {
@@ -95,26 +95,55 @@ export class PanelState {
     const on = (id: string) => (this.values[id] ?? 0) >= 0.5;
 
     const power = on('main_power');
-    const pump = on('hydraulic_pump') || on('hpu_start');
     const estop = on('emergency_stop');
-    const ready = power && pump && !estop;
+    const quickRelease = on('quick_release');
+
+    // Bomba principal: hidráulica (KRAAIJVELD) ou HPU (IBERCISA).
+    const mainPump = on('hydraulic_pump') || on('hpu_start');
+    // IBERCISA exige também a bomba de pilotagem (pressão de comando das válvulas).
+    const pilotOk = ids.has('pilot_pump') ? on('pilot_pump') : true;
+    const ready = power && mainPump && pilotOk && !estop;
 
     // Alavanca/joystick de comando do tambor (-1..1).
-    const lever = this.values['drum_lever'] ?? this.values['winch_joystick'] ?? 0;
+    // O Quick Release sobrepõe o comando: paga cabo imediatamente.
+    let lever = this.values['drum_lever'] ?? this.values['winch_joystick'] ?? 0;
+    if (quickRelease) lever = -1;
 
     // Pressão hidráulica: sobe com bomba ligada e energia, cai com e-stop.
     if (ids.has('hyd_pressure')) {
       this.targets['hyd_pressure'] = ready ? 0.7 : 0;
     }
     // Tensão/carga na linha: proporcional ao módulo da alavanca quando pronto.
+    // Pagar cabo (lever < 0) ou Quick Release alivia a tensão rapidamente.
     const loadId = ids.has('line_tension')
       ? 'line_tension'
       : ids.has('load_cell')
         ? 'load_cell'
         : null;
     if (loadId) {
-      this.targets[loadId] = ready ? Math.min(1, Math.abs(lever) * 0.8 + 0.1) : 0;
+      if (quickRelease) {
+        this.targets[loadId] = 0; // liberação rápida: tensão cai
+      } else if (!ready) {
+        this.targets[loadId] = 0;
+      } else if (lever < 0) {
+        this.targets[loadId] = 0.05; // pagando cabo: alivia
+      } else {
+        this.targets[loadId] = Math.min(1, Math.abs(lever) * 0.8 + 0.1);
+      }
     }
+
+    // Movimento do tambor: alavanca fora do neutro (ou quick release) com sistema apto.
+    const moving = (ready || quickRelease) && Math.abs(lever) >= 0.5;
+
+    // IBERCISA — Sensor Pickup: detecta rotação/velocidade do tambor.
+    if (ids.has('pickup_sensor')) {
+      this.values['pickup_sensor'] = moving ? 1 : 0;
+    }
+    // IBERCISA — Sensor de Acoplamento: confirma o acoplamento do acionamento.
+    if (ids.has('coupling_sensor')) {
+      this.values['coupling_sensor'] = power && mainPump ? 1 : 0;
+    }
+
     // Indicador "pronto p/ operar" (não é animado; valor direto).
     if (ids.has('status_ready')) {
       this.values['status_ready'] = ready ? 1 : 0;

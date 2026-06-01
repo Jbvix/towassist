@@ -29,12 +29,15 @@ export const ibercisaRules: InterlockRuleset = {
         { label: 'Pressão hidráulica suficiente', test: atLeast('hyd_pressure', 0.5) },
       ],
     },
-    // O joystick do guincho exige sistema pronto, freio liberado e e-stop ok.
+    // O joystick do guincho exige sistema pronto, pilotagem, acoplamento,
+    // freio liberado e e-stop ok.
     {
       controlId: 'winch_joystick',
       requires: [
         { label: 'HPU em funcionamento', test: on('hpu_start') },
+        { label: 'Bomba de pilotagem ligada', test: on('pilot_pump') },
         { label: 'Pressão hidráulica suficiente', test: atLeast('hyd_pressure', 0.5) },
+        { label: 'Acoplamento confirmado', test: on('coupling_sensor') },
         { label: 'Freio de cinta liberado', test: off('band_brake') },
         { label: 'Parada de emergência liberada', test: off('emergency_stop') },
       ],

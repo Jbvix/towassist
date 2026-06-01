@@ -4,9 +4,10 @@
     { "id": "hydraulic_pump", "kind": "button", "label": "Bomba Hidráulica", "group": "energia", "hint": "Aciona a bomba hidráulica do guincho." },
     { "id": "emergency_stop", "kind": "button", "label": "Parada de Emergência", "group": "energia", "hint": "Botão de emergência — interrompe todos os movimentos." },
 
-    { "id": "drum_lever", "kind": "lever", "label": "Alavanca do Tambor", "group": "comando", "hint": "Controla recolher/soltar o cabo." },
+    { "id": "drum_lever", "kind": "lever", "label": "Alavanca do Tambor", "group": "comando", "hint": "Comanda colher (recolher) ou pagar (liberar) o cabo." },
     { "id": "clutch", "kind": "selector", "label": "Embreagem", "group": "comando", "hint": "Engata/desengata o tambor." },
     { "id": "brake", "kind": "selector", "label": "Freio", "group": "comando", "hint": "Aplica/libera o freio do tambor." },
+    { "id": "quick_release", "kind": "button", "label": "Quick Release", "group": "comando", "hint": "Liberação rápida de emergência: paga o cabo imediatamente, abrindo o freio sob controle." },
 
     { "id": "line_tension", "kind": "gauge", "label": "Tensão do Cabo", "group": "instrumentacao", "hint": "Indica a tensão atual no cabo." },
     { "id": "hyd_pressure", "kind": "gauge", "label": "Pressão Hidráulica", "group": "instrumentacao", "hint": "Pressão do sistema hidráulico." },

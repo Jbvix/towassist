@@ -40,8 +40,13 @@ const SEQUENCES: Record<EquipmentId, StartupStep[]> = {
     { controlId: 'main_power', instruction: 'Ligue a Energia Principal.', done: on('main_power') },
     { controlId: 'hpu_start', instruction: 'Dê a Partida na HPU.', done: on('hpu_start') },
     {
+      controlId: 'pilot_pump',
+      instruction: 'Ligue a Bomba de Pilotagem.',
+      done: on('pilot_pump'),
+    },
+    {
       controlId: 'winch_joystick',
-      instruction: 'Pronto. Use o Joystick do Guincho para operar.',
+      instruction: 'Pronto. Use o Joystick para colher ou pagar o cabo.',
       done: (v) => Math.abs(v['winch_joystick'] ?? 0) >= 0.5,
     },
   ],

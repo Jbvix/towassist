@@ -59,20 +59,63 @@ describe('PanelState — KRAAIJVELD', () => {
 describe('PanelState — IBERCISA', () => {
   const def = getEquipment('ibercisa');
 
-  it('fica pronto com energia + HPU', () => {
+  it('não fica pronto sem a bomba de pilotagem', () => {
     const s = new PanelState(def);
     s.set('main_power', 1);
     s.set('hpu_start', 1);
+    expect(s.get('status_ready')).toBe(0);
+  });
+
+  it('fica pronto com energia + HPU + bomba de pilotagem', () => {
+    const s = new PanelState(def);
+    s.set('main_power', 1);
+    s.set('hpu_start', 1);
+    s.set('pilot_pump', 1);
     expect(s.get('status_ready')).toBe(1);
+  });
+
+  it('sensor de acoplamento acende com energia + HPU', () => {
+    const s = new PanelState(def);
+    s.set('main_power', 1);
+    s.set('hpu_start', 1);
+    expect(s.get('coupling_sensor')).toBe(1);
+  });
+
+  it('sensor pickup acende quando o tambor se move', () => {
+    const s = new PanelState(def);
+    s.set('main_power', 1);
+    s.set('hpu_start', 1);
+    s.set('pilot_pump', 1);
+    s.set('winch_joystick', 1);
+    expect(s.get('pickup_sensor')).toBe(1);
   });
 
   it('a célula de carga reage ao joystick quando pronto', () => {
     const s = new PanelState(def);
     s.set('main_power', 1);
     s.set('hpu_start', 1);
+    s.set('pilot_pump', 1);
     s.set('winch_joystick', 1);
     for (let i = 0; i < 40; i++) s.tick(0.05);
     expect(s.get('load_cell')).toBeGreaterThan(0);
+  });
+});
+
+describe('PanelState — Quick Release', () => {
+  it('KRAAIJVELD: quick release alivia a tensão da linha', () => {
+    const s = new PanelState(getEquipment('kraaijveld'));
+    // Sistema operando com carga.
+    s.set('main_power', 1);
+    s.set('hydraulic_pump', 1);
+    s.set('brake', 1);
+    s.set('clutch', 1);
+    s.set('drum_lever', 1);
+    for (let i = 0; i < 40; i++) s.tick(0.05);
+    expect(s.get('line_tension')).toBeGreaterThan(0.3);
+    // Aciona o quick release → tensão cai.
+    s.set('quick_release', 1);
+    for (let i = 0; i < 40; i++) s.tick(0.05);
+    expect(s.get('line_tension')).toBeLessThan(0.1);
   });
 });
 

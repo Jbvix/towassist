@@ -59,6 +59,8 @@ describe('InterlockEngine — IBERCISA', () => {
     const comFreio: PanelValues = {
       main_power: 1,
       hpu_start: 1,
+      pilot_pump: 1,
+      coupling_sensor: 1,
       hyd_pressure: 0.7,
       band_brake: 1,
     };
@@ -66,8 +68,26 @@ describe('InterlockEngine — IBERCISA', () => {
     expect(ev.allowed).toBe(false);
     expect(ev.blockedBy).toContain('Freio de cinta liberado');
 
-    const semFreio: PanelValues = { main_power: 1, hpu_start: 1, hyd_pressure: 0.7 };
-    expect(engine.isAllowed('winch_joystick', semFreio)).toBe(true);
+    const liberado: PanelValues = {
+      main_power: 1,
+      hpu_start: 1,
+      pilot_pump: 1,
+      coupling_sensor: 1,
+      hyd_pressure: 0.7,
+    };
+    expect(engine.isAllowed('winch_joystick', liberado)).toBe(true);
+  });
+
+  it('o joystick exige a bomba de pilotagem', () => {
+    const semPilot: PanelValues = {
+      main_power: 1,
+      hpu_start: 1,
+      coupling_sensor: 1,
+      hyd_pressure: 0.7,
+    };
+    const ev = engine.evaluate(semPilot).controls['winch_joystick'];
+    expect(ev.allowed).toBe(false);
+    expect(ev.blockedBy).toContain('Bomba de pilotagem ligada');
   });
 });
 
