@@ -61,11 +61,13 @@ export class VoiceAgent {
 
   /** Inicia a sessão. Deve ser chamado a partir de um clique do usuário. */
   async connect(): Promise<void> {
+    console.debug('[KRATOS voz] connect() iniciado');
     this.setStatus('connecting');
     try {
       // 1) AudioContext + mic — warmup dentro do gesto, antes de qualquer await longo.
       this.audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
       if (this.audioCtx.state === 'suspended') await this.audioCtx.resume();
+      console.debug('[KRATOS voz] AudioContext', this.audioCtx.state);
 
       this.micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -75,6 +77,7 @@ export class VoiceAgent {
           sampleRate: SAMPLE_RATE,
         },
       });
+      console.debug('[KRATOS voz] microfone autorizado');
 
       await this.audioCtx.audioWorklet.addModule('/pcm-processor-worklet.js');
       const source = this.audioCtx.createMediaStreamSource(this.micStream);
@@ -85,8 +88,10 @@ export class VoiceAgent {
 
       // 2) Token efêmero + WebSocket em paralelo (mic já está capturando).
       const token = await this.fetchToken();
+      console.debug('[KRATOS voz] token recebido, expira em', token.expires_at);
       this.openSocket(token.value);
     } catch (err) {
+      console.error('[KRATOS voz] falha no connect()', err);
       this.handleError(err);
       this.disconnect();
     }
@@ -169,6 +174,7 @@ export class VoiceAgent {
   }
 
   private openSocket(token: string): void {
+    console.debug('[KRATOS voz] abrindo WebSocket…');
     const ws = new WebSocket(`wss://api.x.ai/v1/realtime?model=${MODEL}`, [
       `xai-client-secret.${token}`,
     ]);
@@ -176,6 +182,7 @@ export class VoiceAgent {
     this.sessionReady = false;
 
     ws.onopen = () => {
+      console.debug('[KRATOS voz] WebSocket aberto; enviando session.update');
       const equipment = this.getEquipment();
       const tools: Array<Record<string, unknown>> = [
         { type: 'web_search' },
@@ -206,8 +213,12 @@ export class VoiceAgent {
     };
 
     ws.onmessage = ({ data }) => this.onServerEvent(data as string);
-    ws.onerror = () => this.handleError(new Error('Erro na conexão de voz.'));
-    ws.onclose = () => {
+    ws.onerror = (ev) => {
+      console.error('[KRATOS voz] WebSocket erro', ev);
+      this.handleError(new Error('Erro na conexão de voz.'));
+    };
+    ws.onclose = (ev) => {
+      console.warn('[KRATOS voz] WebSocket fechado', { code: ev.code, reason: ev.reason });
       if (this.ws === ws) this.ws = null;
     };
   }
@@ -220,12 +231,18 @@ export class VoiceAgent {
       return;
     }
 
+    // Log de eventos relevantes (ignora os deltas de áudio, muito frequentes).
+    if (event.type !== 'response.output_audio.delta') {
+      console.debug('[KRATOS voz] evento', event.type, event.message ?? '');
+    }
+
     switch (event.type) {
       case 'session.updated':
         if (!this.sessionReady) {
           this.sessionReady = true;
           this.flushMicBuffer();
           this.setStatus('active');
+          console.debug('[KRATOS voz] sessão ATIVA');
         }
         break;
 
@@ -253,6 +270,7 @@ export class VoiceAgent {
         break;
 
       case 'error':
+        console.error('[KRATOS voz] erro do servidor', event);
         this.handleError(new Error(event.message || 'Erro da API de voz.'));
         break;
     }
