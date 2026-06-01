@@ -2,18 +2,27 @@
 // Desenha os controles a partir dos dados, aceita interação do usuário,
 // mantém o PanelState e anima os mostradores via ticker.
 
-import { Application, Container } from 'pixi.js';
-import type { EquipmentDefinition, EquipmentId } from '@shared/types/equipment.ts';
+import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
+import type { EquipmentDefinition, EquipmentId, PanelControl } from '@shared/types/equipment.ts';
 import { PanelState, type PanelValues } from '@/sim/state.ts';
 import { ControlNode, type ControlIntent } from '@/sim/components/ControlNode.ts';
 import { InterlockEngine } from '@/interlock/InterlockEngine.ts';
 import { getRuleset } from '@/interlock/rules/index.ts';
 import type { InterlockEvaluation } from '@/interlock/types.ts';
 
+/** Rótulos legíveis dos grupos funcionais. */
+const GROUP_TITLES: Record<string, string> = {
+  energia: 'ENERGIA & SEGURANÇA',
+  comando: 'COMANDO',
+  instrumentacao: 'INSTRUMENTAÇÃO',
+};
+const GROUP_ORDER = ['energia', 'comando', 'instrumentacao'];
+
 export class Simulator {
   private readonly app = new Application();
   private panel: Container | null = null;
   private nodes = new Map<string, ControlNode>();
+  private currentDef: EquipmentDefinition | null = null;
   private state: PanelState | null = null;
   private interlock: InterlockEngine | null = null;
   private accent = 0x2f9e8f;
@@ -58,6 +67,7 @@ export class Simulator {
     this.panel = new Container();
     this.app.stage.addChild(this.panel);
     this.nodes.clear();
+    this.currentDef = def;
 
     this.interlock = new InterlockEngine(getRuleset(def.meta.id as EquipmentId));
 
@@ -71,7 +81,6 @@ export class Simulator {
     for (const control of def.controls) {
       const node = new ControlNode(control, this.accent, (intent) => this.handleIntent(intent));
       this.nodes.set(control.id, node);
-      this.panel.addChild(node.container);
     }
     this.layout();
   }
@@ -131,31 +140,108 @@ export class Simulator {
   }
 
   private layout(): void {
-    if (!this.panel) return;
+    if (!this.panel || !this.currentDef) return;
+    const panel = this.panel;
     const { width, height } = this.app.renderer;
 
-    // Canvas de projeto virtual: os controles (160x70) são posicionados num
-    // espaço fixo e o painel inteiro é escalado para caber na tela (desktop
-    // ou celular), sem sobreposição. Margem proporcional ao menor lado.
-    const DESIGN_W = 1000;
-    const DESIGN_H = 720;
-    const margin = 110;
+    // --- Geometria de projeto (virtual), escalada para caber na tela ---
+    const CELL_W = 184; // largura do controle + respiro
+    const CELL_H = 96;
+    const COL_GAP = 18;
+    const ROW_GAP = 16;
+    const PAD = 26; // padding interno da seção
+    const TITLE_H = 30;
+    const SECTION_GAP = 26;
+    const OUTER = 36;
 
-    for (const node of this.nodes.values()) {
-      const c = node.control;
-      node.container.position.set(
-        margin + c.x * (DESIGN_W - margin * 2),
-        margin + c.y * (DESIGN_H - margin * 2),
-      );
+    // Agrupa os controles preservando a ordem dos dados.
+    const groups = this.groupControls(this.currentDef.controls);
+
+    // Número de colunas por seção: adapta ao formato da viewport.
+    const portrait = height > width * 1.15;
+    const maxCols = portrait ? 2 : 3;
+
+    // Limpa qualquer decoração anterior e re-popula (frames + títulos + nós).
+    panel.removeChildren();
+
+    let y = OUTER;
+    let designW = 0;
+
+    for (const [group, controls] of groups) {
+      const cols = Math.min(maxCols, controls.length);
+      const rows = Math.ceil(controls.length / cols);
+      const innerW = cols * CELL_W + (cols - 1) * COL_GAP;
+      const innerH = rows * CELL_H + (rows - 1) * ROW_GAP;
+      const sectionW = innerW + PAD * 2;
+      const sectionH = TITLE_H + innerH + PAD * 2;
+      designW = Math.max(designW, sectionW + OUTER * 2);
+
+      // Moldura da seção.
+      const frame = new Graphics()
+        .roundRect(OUTER, y, sectionW, sectionH, 16)
+        .fill({ color: 0x0e141b, alpha: 0.6 })
+        .stroke({ width: 1, color: 0x223040 });
+      panel.addChild(frame);
+
+      // Título da seção.
+      const title = new Text({
+        text: GROUP_TITLES[group] ?? group.toUpperCase(),
+        style: new TextStyle({
+          fill: 0x9fb0c0,
+          fontSize: 13,
+          fontWeight: '700',
+          letterSpacing: 1.5,
+          fontFamily: 'system-ui, sans-serif',
+        }),
+      });
+      title.position.set(OUTER + PAD, y + PAD - 6);
+      panel.addChild(title);
+
+      // Controles em grade dentro da seção.
+      controls.forEach((control, i) => {
+        const node = this.nodes.get(control.id);
+        if (!node) return;
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const cx = OUTER + PAD + col * (CELL_W + COL_GAP) + CELL_W / 2;
+        const cy = y + TITLE_H + PAD + row * (CELL_H + ROW_GAP) + CELL_H / 2;
+        node.container.position.set(cx, cy);
+        panel.addChild(node.container);
+      });
+
+      y += sectionH + SECTION_GAP;
     }
 
+    const designH = y - SECTION_GAP + OUTER;
+
     // Escala "contain": cabe tudo, mantém proporção; centraliza.
-    const scale = Math.min(width / DESIGN_W, height / DESIGN_H);
-    this.panel.scale.set(scale);
-    this.panel.position.set(
-      (width - DESIGN_W * scale) / 2,
-      (height - DESIGN_H * scale) / 2,
+    const scale = Math.min(width / designW, height / designH, 1.15);
+    panel.scale.set(scale);
+    panel.position.set(
+      Math.max(0, (width - designW * scale) / 2),
+      Math.max(0, (height - designH * scale) / 2),
     );
+  }
+
+  /** Agrupa os controles por `group`, na ordem canônica; sem grupo vai por último. */
+  private groupControls(controls: PanelControl[]): Array<[string, PanelControl[]]> {
+    const byGroup = new Map<string, PanelControl[]>();
+    for (const c of controls) {
+      const g = c.group ?? 'outros';
+      const arr = byGroup.get(g) ?? [];
+      arr.push(c);
+      byGroup.set(g, arr);
+    }
+    const ordered: Array<[string, PanelControl[]]> = [];
+    for (const g of GROUP_ORDER) {
+      const arr = byGroup.get(g);
+      if (arr) {
+        ordered.push([g, arr]);
+        byGroup.delete(g);
+      }
+    }
+    for (const [g, arr] of byGroup) ordered.push([g, arr]);
+    return ordered;
   }
 
   destroy(): void {
