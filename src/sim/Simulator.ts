@@ -19,6 +19,7 @@ const GROUP_TITLES: Record<string, string> = {
 const GROUP_ORDER = ['energia', 'comando', 'instrumentacao'];
 
 export class Simulator {
+  private static instances = 0;
   private readonly app = new Application();
   private panel: Container | null = null;
   private nodes = new Map<string, ControlNode>();
@@ -34,7 +35,6 @@ export class Simulator {
   /** Diagnóstico: identifica esta instância e quantas vezes renderizou. */
   private readonly instanceId = ++Simulator.instances;
   private renderCount = 0;
-  private static instances = 0;
 
   /** Notificado quando o estado do painel muda (para contexto do KRATOS). */
   onStateChange: ((values: PanelValues) => void) | null = null;
