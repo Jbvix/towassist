@@ -1,13 +1,18 @@
-// Nó visual interativo de um controle do painel (PixiJS).
-// Renderiza a "caixa" + glifo conforme o tipo e o valor atual, e dispara
-// uma intenção de mudança quando o usuário interage (clique/drag).
+// Nó visual de um controle do painel (PixiJS).
+// Renderiza a "caixa" + glifo conforme o tipo e o valor atual.
+// A INTERAÇÃO é tratada pelo Simulator via hit-testing no canvas (DOM),
+// que é mais confiável que os eventos federados do PixiJS neste contexto.
 
-import { Container, Graphics, Rectangle, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import type { PanelControl } from '@shared/types/equipment.ts';
 import { LEVER_LABELS } from '@/sim/state.ts';
 
 const W = 160;
 const H = 70;
+/** Dimensões da caixa do controle (para hit-testing no Simulator). */
+export const NODE_W = W;
+export const NODE_H = H;
+
 const COLORS = {
   box: 0x141a21,
   boxActive: 0x1c2530,
@@ -18,7 +23,7 @@ const COLORS = {
   ok: 0x3fb37a,
 };
 
-/** Intenção de mudança emitida pelo controle (o estado real é aplicado fora). */
+/** Intenção de mudança (o estado real é aplicado pelo Simulator). */
 export type ControlIntent =
   | { kind: 'toggle'; id: string }
   | { kind: 'set'; id: string; value: number };
@@ -34,11 +39,7 @@ export class ControlNode {
   private value = 0;
   private enabled = true;
 
-  constructor(
-    control: PanelControl,
-    accent: number,
-    private readonly onIntent: (intent: ControlIntent) => void,
-  ) {
+  constructor(control: PanelControl, accent: number) {
     this.control = control;
     this.accent = accent;
 
@@ -70,8 +71,22 @@ export class ControlNode {
     this.valueText.position.set(-W / 2 + 50, H / 2 - 8);
     this.container.addChild(this.valueText);
 
-    this.setupInteraction();
     this.redraw();
+  }
+
+  /** Valor atual (para o Simulator computar o próximo estado da alavanca). */
+  get currentValue(): number {
+    return this.value;
+  }
+
+  /** Se o controle aceita acionamento no momento (intertravamento). */
+  get isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /** Se é um controle acionável (não um mostrador). */
+  get isInteractive(): boolean {
+    return this.control.kind !== 'gauge' && this.control.kind !== 'indicator';
   }
 
   setAccent(accent: number): void {
@@ -85,12 +100,11 @@ export class ControlNode {
     this.redraw();
   }
 
-  /** Habilita/desabilita conforme o intertravamento (Sprint 5). */
+  /** Habilita/desabilita conforme o intertravamento. */
   setEnabled(enabled: boolean): void {
     if (this.enabled === enabled) return;
     this.enabled = enabled;
     this.container.alpha = enabled ? 1 : 0.45;
-    this.container.cursor = enabled ? 'pointer' : 'not-allowed';
     this.redraw();
   }
 
@@ -102,34 +116,6 @@ export class ControlNode {
       .fill(COLORS.box)
       .stroke({ width: 2.5, color: COLORS.danger });
     window.setTimeout(() => this.redraw(), 320);
-  }
-
-  private setupInteraction(): void {
-    const c = this.control;
-    if (c.kind === 'gauge' || c.kind === 'indicator') {
-      this.container.eventMode = 'none';
-      return;
-    }
-    this.container.eventMode = 'static';
-    this.container.cursor = 'pointer';
-    // hitArea explícita: sem ela o Container não recebe o clique de forma
-    // confiável no PixiJS v8 (os filhos Graphics não viram área de toque do pai).
-    this.container.hitArea = new Rectangle(-W / 2, -H / 2, W, H);
-
-    // 'pointertap' = um clique/toque idiomático (pointerdown+up no mesmo alvo),
-    // evitando disparos duplicados de pointerdown e acionamento ao rolar a tela.
-    const onActivate = (e?: { stopPropagation?: () => void; type?: string }) => {
-      e?.stopPropagation?.();
-      console.debug('[TowAssist] evento controle', c.id, e?.type, 'enabled=', this.enabled);
-      if (!this.enabled) return;
-      if (c.kind === 'lever') {
-        const next = this.value >= 1 ? -1 : this.value < 0 ? 0 : 1;
-        this.onIntent({ kind: 'set', id: c.id, value: next });
-      } else {
-        this.onIntent({ kind: 'toggle', id: c.id });
-      }
-    };
-    this.container.on('pointertap', onActivate);
   }
 
   private redraw(): void {
@@ -169,8 +155,7 @@ function drawGlyph(g: Graphics, control: PanelControl, value: number, accent: nu
   const on = value >= 0.5;
   switch (control.kind) {
     case 'lever': {
-      // Base + haste inclinada conforme a posição (-1..1).
-      const angle = value * 0.5; // rad
+      const angle = value * 0.5;
       g.roundRect(-10, 14, 20, 6, 3).fill(0x2a3542);
       const tipX = Math.sin(angle) * 22;
       const tipY = 14 - Math.cos(angle) * 24;
@@ -190,13 +175,11 @@ function drawGlyph(g: Graphics, control: PanelControl, value: number, accent: nu
         .stroke({ width: 3, color: COLORS.text });
       break;
     case 'gauge': {
-      // Arco de 0..1.
       g.circle(0, 0, 15).stroke({ width: 3, color: 0x2a3542 });
       const a0 = Math.PI * 0.75;
       const a1 = a0 + Math.PI * 1.5 * Math.max(0, Math.min(1, value));
       g.arc(0, 0, 15, a0, a1).stroke({ width: 3, color: accent });
-      const ang = a1;
-      g.moveTo(0, 0).lineTo(Math.cos(ang) * 11, Math.sin(ang) * 11).stroke({
+      g.moveTo(0, 0).lineTo(Math.cos(a1) * 11, Math.sin(a1) * 11).stroke({
         width: 2,
         color: COLORS.text,
       });
