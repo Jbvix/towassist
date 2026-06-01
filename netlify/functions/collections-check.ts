@@ -8,12 +8,14 @@ import { requireApiKey, JSON_HEADERS } from './lib/grok.ts';
 const SEARCH_URL = 'https://api.x.ai/v1/documents/search';
 
 async function probe(collectionId: string): Promise<{ ok: boolean; detail: string }> {
+  // Query realista (termos típicos dos manuais) em vez de "teste".
+  const query = 'freio tambor pressão hidráulica operação guincho';
   let res: Response;
   try {
     res = await fetch(SEARCH_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${requireApiKey()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: 'teste', source: { collection_ids: [collectionId] }, limit: 1 }),
+      body: JSON.stringify({ query, source: { collection_ids: [collectionId] }, limit: 5 }),
     });
   } catch (e) {
     return { ok: false, detail: e instanceof Error ? e.message : 'rede' };
@@ -22,9 +24,16 @@ async function probe(collectionId: string): Promise<{ ok: boolean; detail: strin
     const t = await res.text().catch(() => '');
     return { ok: false, detail: `busca respondeu ${res.status}: ${t.slice(0, 160)}` };
   }
-  const data = (await res.json().catch(() => null)) as { results?: unknown[]; chunks?: unknown[] } | null;
-  const n = (data?.results ?? data?.chunks ?? []).length;
-  return { ok: true, detail: `busca ok — ${n} trecho(s) retornado(s)` };
+  const data = (await res.json().catch(() => null)) as
+    | { results?: Array<{ content?: string; text?: string }>; chunks?: Array<{ content?: string; text?: string }> }
+    | null;
+  const items = data?.results ?? data?.chunks ?? [];
+  const sample = (items[0]?.content ?? items[0]?.text ?? '').slice(0, 120);
+  return {
+    ok: true,
+    detail:
+      `busca ok — ${items.length} trecho(s)` + (sample ? ` · amostra: "${sample}…"` : ' (vazio)'),
+  };
 }
 
 export default async function handler(): Promise<Response> {
