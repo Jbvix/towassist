@@ -46,6 +46,9 @@ export class Simulator {
   onInterlock: ((evaluation: InterlockEvaluation) => void) | null = null;
   /** Notificado quando um comando é bloqueado pelo intertravamento. */
   onBlocked: ((controlId: string, label: string, reasons: string[]) => void) | null = null;
+  /** Notificado ao passar o mouse sobre um controle (tooltip). null = saiu. */
+  onHover: ((info: { label: string; hint: string; x: number; y: number } | null) => void) | null =
+    null;
 
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
@@ -61,6 +64,8 @@ export class Simulator {
     // Interação robusta: clique no canvas (DOM) + hit-testing manual.
     this.app.canvas.style.touchAction = 'manipulation';
     this.app.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+    this.app.canvas.addEventListener('mousemove', (e) => this.handleCanvasHover(e));
+    this.app.canvas.addEventListener('mouseleave', () => this.onHover?.(null));
 
     this.resizeObserver = new ResizeObserver(() => this.layout());
     this.resizeObserver.observe(host);
@@ -123,6 +128,31 @@ export class Simulator {
         return;
       }
     }
+  }
+
+  /** Mouse sobre o canvas → tooltip + cursor de ponteiro nos controles. */
+  private handleCanvasHover(e: MouseEvent): void {
+    const rect = this.app.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    for (const r of this.hitRects) {
+      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+        const node = this.nodes.get(r.id);
+        if (node?.control.hint) {
+          this.app.canvas.style.cursor = node.isInteractive ? 'pointer' : 'default';
+          this.onHover?.({
+            label: node.control.label,
+            hint: node.control.hint,
+            x: e.clientX,
+            y: e.clientY,
+          });
+          return;
+        }
+      }
+    }
+    this.app.canvas.style.cursor = 'default';
+    this.onHover?.(null);
   }
 
   private handleIntent(intent: ControlIntent): void {

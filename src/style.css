@@ -172,6 +172,27 @@ body {
   height: 10px;
   border-radius: 50%;
   background: var(--accent);
+  transition: box-shadow 0.3s, background 0.3s;
+}
+
+/* Sistema "Pronto p/ Operar": realce energizado no cabeçalho da simulação. */
+.sim-panel--ready .sim-panel__dot {
+  background: #3fb37a;
+  animation: ready-glow 1.8s ease-in-out infinite;
+}
+
+.sim-panel--ready .sim-panel__meta {
+  color: #8fe3b6;
+}
+
+@keyframes ready-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, #3fb37a 70%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px transparent;
+  }
 }
 
 .sim-panel__canvas {
@@ -307,6 +328,32 @@ body {
 
 .interlock__reasons li {
   margin: 2px 0;
+}
+
+/* ---- Tooltip dos controles ---- */
+.sim-panel__tooltip {
+  position: absolute;
+  z-index: 20;
+  max-width: 240px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.sim-panel__tooltip strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.sim-panel__tooltip span {
+  color: var(--text-muted);
 }
 
 /* ---- Toast de bloqueio ---- */
