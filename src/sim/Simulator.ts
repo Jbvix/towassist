@@ -29,6 +29,8 @@ export class Simulator {
   private resizeObserver: ResizeObserver | null = null;
   private initialized = false;
   private lastTime = 0;
+  /** Anti-duplicação: ignora acionamentos repetidos do mesmo controle em poucos ms. */
+  private lastIntentAt = new Map<string, number>();
 
   /** Notificado quando o estado do painel muda (para contexto do KRATOS). */
   onStateChange: ((values: PanelValues) => void) | null = null;
@@ -97,6 +99,15 @@ export class Simulator {
 
   private handleIntent(intent: ControlIntent): void {
     if (!this.state) return;
+
+    // Guard anti-duplicação: alguns ambientes (touch/trackpad) entregam o
+    // evento de ponteiro duas vezes, o que faria ligar e desligar no mesmo
+    // instante. Ignora um segundo acionamento do mesmo controle em < 280 ms.
+    const now = performance.now();
+    const last = this.lastIntentAt.get(intent.id) ?? 0;
+    if (now - last < 280) return;
+    this.lastIntentAt.set(intent.id, now);
+
     const current = this.state.get(intent.id);
     const next =
       intent.kind === 'toggle' ? (current >= 0.5 ? 0 : 1) : intent.value;

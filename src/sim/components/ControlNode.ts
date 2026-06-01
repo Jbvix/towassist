@@ -116,20 +116,19 @@ export class ControlNode {
     // confiável no PixiJS v8 (os filhos Graphics não viram área de toque do pai).
     this.container.hitArea = new Rectangle(-W / 2, -H / 2, W, H);
 
-    if (c.kind === 'lever') {
-      // Alavanca de 3 posições: clique cicla SOLTAR(-1) → NEUTRO(0) → RECOLHER(1).
-      this.container.on('pointerdown', () => {
-        if (!this.enabled) return;
+    // 'pointertap' = um clique/toque idiomático (pointerdown+up no mesmo alvo),
+    // evitando disparos duplicados de pointerdown e acionamento ao rolar a tela.
+    const onActivate = (e?: { stopPropagation?: () => void }) => {
+      e?.stopPropagation?.();
+      if (!this.enabled) return;
+      if (c.kind === 'lever') {
         const next = this.value >= 1 ? -1 : this.value < 0 ? 0 : 1;
         this.onIntent({ kind: 'set', id: c.id, value: next });
-      });
-    } else {
-      // button / selector: alterna 0/1.
-      this.container.on('pointerdown', () => {
-        if (!this.enabled) return;
+      } else {
         this.onIntent({ kind: 'toggle', id: c.id });
-      });
-    }
+      }
+    };
+    this.container.on('pointertap', onActivate);
   }
 
   private redraw(): void {
