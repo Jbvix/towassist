@@ -39,6 +39,12 @@ export class Simulator {
   private resizeObserver: ResizeObserver | null = null;
   private initialized = false;
   private lastTime = 0;
+  /** Arraste em curso de uma alavanca (id + se houve movimento). */
+  private dragging: { id: string; rect: HitRect; moved: boolean } | null = null;
+  /** Marca que o último gesto foi um arraste (suprime o clique seguinte). */
+  private suppressClick = false;
+  private winMove: ((e: MouseEvent) => void) | null = null;
+  private winUp: (() => void) | null = null;
 
   /** Notificado quando o estado do painel muda (para contexto do KRATOS). */
   onStateChange: ((values: PanelValues) => void) | null = null;
@@ -66,6 +72,12 @@ export class Simulator {
     this.app.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
     this.app.canvas.addEventListener('mousemove', (e) => this.handleCanvasHover(e));
     this.app.canvas.addEventListener('mouseleave', () => this.onHover?.(null));
+    // Arraste de alavancas (mousedown no canvas; move/up na janela).
+    this.app.canvas.addEventListener('mousedown', (e) => this.handleDragStart(e));
+    this.winMove = (e: MouseEvent) => this.handleDragMove(e);
+    this.winUp = () => this.handleDragEnd();
+    window.addEventListener('mousemove', this.winMove);
+    window.addEventListener('mouseup', this.winUp);
 
     this.resizeObserver = new ResizeObserver(() => this.layout());
     this.resizeObserver.observe(host);
@@ -109,25 +121,64 @@ export class Simulator {
     return this.state?.snapshot ?? {};
   }
 
-  /** Clique no canvas → encontra o controle sob o cursor e o aciona. */
-  private handleCanvasClick(e: MouseEvent): void {
+  /** Retângulo de toque sob a coordenada de tela, ou null. */
+  private hitAt(clientX: number, clientY: number): HitRect | null {
     const rect = this.app.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Procura de cima para baixo (último desenhado primeiro não importa: sem sobreposição).
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     for (const r of this.hitRects) {
-      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
-        const node = this.nodes.get(r.id);
-        if (!node || !node.isInteractive || !node.isEnabled) return;
-        const intent: ControlIntent =
-          node.control.kind === 'lever'
-            ? { kind: 'set', id: r.id, value: cycleLever(node.currentValue) }
-            : { kind: 'toggle', id: r.id };
-        this.handleIntent(intent);
+      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return r;
+    }
+    return null;
+  }
+
+  /** Clique no canvas → aciona botão/seletor; alavanca cicla se não houve arraste. */
+  private handleCanvasClick(e: MouseEvent): void {
+    const r = this.hitAt(e.clientX, e.clientY);
+    if (!r) return;
+    const node = this.nodes.get(r.id);
+    if (!node || !node.isInteractive || !node.isEnabled) return;
+
+    if (node.control.kind === 'lever') {
+      // Se o usuário arrastou, o valor já foi definido no move; não cicla.
+      if (this.suppressClick) {
+        this.suppressClick = false;
         return;
       }
+      this.handleIntent({ kind: 'set', id: r.id, value: cycleLever(node.currentValue) });
+    } else {
+      this.handleIntent({ kind: 'toggle', id: r.id });
     }
+  }
+
+  private handleDragStart(e: MouseEvent): void {
+    const r = this.hitAt(e.clientX, e.clientY);
+    if (!r) return;
+    const node = this.nodes.get(r.id);
+    if (!node || node.control.kind !== 'lever' || !node.isEnabled) return;
+    this.dragging = { id: r.id, rect: r, moved: false };
+  }
+
+  private handleDragMove(e: MouseEvent): void {
+    if (!this.dragging || !this.state) return;
+    const { id, rect } = this.dragging;
+    // Posição vertical relativa dentro do controle: topo = RECOLHER(1),
+    // meio = NEUTRO(0), base = SOLTAR(-1).
+    const canvasRect = this.app.canvas.getBoundingClientRect();
+    const y = e.clientY - canvasRect.top;
+    const t = (y - rect.y) / rect.h; // 0 (topo) .. 1 (base)
+    const value = Math.max(-1, Math.min(1, 1 - t * 2));
+    // Quantiza levemente para encaixar em -1/0/1 perto dos extremos/centro.
+    const snapped = Math.abs(value) < 0.25 ? 0 : value > 0 ? 1 : -1;
+    this.dragging.moved = true;
+    if (snapped !== this.state.get(id)) {
+      this.handleIntent({ kind: 'set', id, value: snapped });
+    }
+  }
+
+  private handleDragEnd(): void {
+    if (this.dragging?.moved) this.suppressClick = true;
+    this.dragging = null;
   }
 
   /** Mouse sobre o canvas → tooltip + cursor de ponteiro nos controles. */
@@ -319,6 +370,10 @@ export class Simulator {
   destroy(): void {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    if (this.winMove) window.removeEventListener('mousemove', this.winMove);
+    if (this.winUp) window.removeEventListener('mouseup', this.winUp);
+    this.winMove = null;
+    this.winUp = null;
     if (this.initialized) {
       this.app.destroy(true, { children: true });
       this.initialized = false;
