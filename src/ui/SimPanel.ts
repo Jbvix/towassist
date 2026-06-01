@@ -12,6 +12,7 @@ export class SimPanel {
   private readonly metaEl: HTMLDivElement;
   private readonly canvasHost: HTMLDivElement;
   private readonly toastEl: HTMLDivElement;
+  private readonly tooltipEl: HTMLDivElement;
   private readonly sim = new Simulator();
   private readonly interlockPanel = new InterlockPanel();
   private ready = false;
@@ -34,15 +35,43 @@ export class SimPanel {
     this.toastEl.className = 'sim-panel__toast';
     this.toastEl.hidden = true;
 
-    this.canvasHost.append(this.interlockPanel.el, this.toastEl);
+    this.tooltipEl = document.createElement('div');
+    this.tooltipEl.className = 'sim-panel__tooltip';
+    this.tooltipEl.hidden = true;
+
+    this.canvasHost.append(this.interlockPanel.el, this.toastEl, this.tooltipEl);
     this.el.append(this.metaEl, this.canvasHost);
 
-    // Repassa o estado do painel ao store (consumido pelo chat do KRATOS).
-    this.sim.onStateChange = (values) => this.panelStore.update(values);
+    // Repassa o estado do painel ao store (consumido pelo chat do KRATOS)
+    // e destaca visualmente quando o sistema fica "Pronto p/ Operar".
+    this.sim.onStateChange = (values) => {
+      this.panelStore.update(values);
+      const ready = (values['status_ready'] ?? 0) >= 0.5;
+      this.el.classList.toggle('sim-panel--ready', ready);
+    };
     // Atualiza o painel de intertravamento a cada avaliação.
     this.sim.onInterlock = (evaluation) => this.interlockPanel.update(evaluation);
     // Mostra o motivo quando um comando é bloqueado.
     this.sim.onBlocked = (_id, label, reasons) => this.showBlockedToast(label, reasons);
+    // Tooltip ao passar o mouse sobre um controle.
+    this.sim.onHover = (info) => this.showTooltip(info);
+  }
+
+  private showTooltip(
+    info: { label: string; hint: string; x: number; y: number } | null,
+  ): void {
+    if (!info) {
+      this.tooltipEl.hidden = true;
+      return;
+    }
+    this.tooltipEl.innerHTML = `<strong>${info.label}</strong><span>${info.hint}</span>`;
+    const host = this.canvasHost.getBoundingClientRect();
+    // Posiciona próximo ao cursor, dentro do host.
+    const x = info.x - host.left + 14;
+    const y = info.y - host.top + 14;
+    this.tooltipEl.style.left = `${x}px`;
+    this.tooltipEl.style.top = `${y}px`;
+    this.tooltipEl.hidden = false;
   }
 
   /** Inicializa o PixiJS e passa a reagir à troca de telas. */
