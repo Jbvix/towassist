@@ -78,8 +78,13 @@ Detalhes em [`docs/02-ROADMAP-SPRINTS.md`](docs/02-ROADMAP-SPRINTS.md).
   nunca vai ao navegador.
 - **Conhecimento:** RAG sobre os manuais dos equipamentos.
 
----
+## Licença e Copyright
 
-## Licença
+**Copyright (c) 2026 Jossian Brito**
 
-Ver [LICENSE](LICENSE).
+Este projeto é licenciado sob a **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**.
+
+- Uso comercial não é permitido sem autorização expressa prévia do autor.
+- A atribuição ao autor original é obrigatória.
+
+O texto completo da licença está no arquivo [LICENSE](LICENSE).
